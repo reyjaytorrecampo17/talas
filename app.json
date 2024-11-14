@@ -1,0 +1,50 @@
+{
+  "expo": {
+    "name": "Talas",
+    "slug": "Talas",
+    "version": "1.0.0",
+    "scheme": "Talas",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "orientation": "portrait",
+    "icon": "./assets/talasIcon.png",
+    "userInterfaceStyle": "light",
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "listUnknownPackages": false
+      }
+    },
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splashscreen.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.reyjay04.Talas"
+    },
+    "web": {
+      "name": "Talas",
+      "slug": "Talas",
+      "version": "1.0.0",
+      "scheme": "Talas",
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "27fc95ef-115d-44d0-a59a-5adf21b6f7a1"
+      }
+    },
+    "owner": "reyjay04"
+  }
+}
