@@ -509,9 +509,9 @@ const styles = StyleSheet.create({
   dropdown: {
     position: 'absolute',
     top: 20, // Adjust this value to position the dropdown below the hamburger
-    left: -100,
+    left: -90,
     backgroundColor: '#fff',
-    width: 120,
+    width: 110,
     borderRadius: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -520,13 +520,13 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   menuItem: {
-    paddingVertical: 15,
-    paddingHorizontal: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 5,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
   menuText: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: 'LilitaOne_400Regular',
     color: '#333 ',
   },
