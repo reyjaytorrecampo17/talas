@@ -62,17 +62,8 @@ const ProfileHeader = ({ userId }) => {
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [notificationsModalVisible, setNotificationsModalVisible] = useState(false);
   const [profilePicture, setProfilePicture] = useState(null);
-  useFocusEffect(
-    useCallback(() => {
-      // Reset dropdown when the screen is focused
-      setDropdownVisible(false);
 
-      return () => {
-        // Cleanup if needed when leaving the screen
-        setDropdownVisible(false);
-      };
-    }, [])
-  );
+
   useEffect(() => {
     if (!userId) {
       console.error('No userId provided');
@@ -80,9 +71,9 @@ const ProfileHeader = ({ userId }) => {
       setLoading(false);
       return;
     }
-
+  
     const userDocRef = doc(db, 'users', userId);
-
+  
     // Set up a real-time listener
     const unsubscribe = onSnapshot(
       userDocRef,
@@ -93,7 +84,7 @@ const ProfileHeader = ({ userId }) => {
           setPoints(userData.points || 0); // Set user's current XP as points
           setLevel(userData.level || 0); // Set user's level
           setProgress(userData.currentXP / userData.nextLevelXP || 0); // Calculate progress
-          setProfilePicture(userData.profilePicture || '../images/defaultImage.jpg'); // Default profile picture
+          setProfilePicture(userData.profilePicture || ''); // Set profile picture, default to an empty string
         } else {
           console.log('No such user!');
           setError('No such user!');
@@ -106,10 +97,22 @@ const ProfileHeader = ({ userId }) => {
         setLoading(false);
       }
     );
-
+  
     // Cleanup the listener on component unmount
     return () => unsubscribe();
   }, [userId]);
+  useFocusEffect(
+    useCallback(() => {
+      // Reset dropdown when the screen is focused
+      setDropdownVisible(false);
+
+      return () => {
+        // Cleanup if needed when leaving the screen
+        setDropdownVisible(false);
+      };
+    }, [])
+  );
+  
   
   const toggleDropdown = () => {
     setDropdownVisible(!dropdownVisible);
@@ -128,13 +131,10 @@ const ProfileHeader = ({ userId }) => {
   };
 
   const handleLogout = async () => {
-    try {
+
       await signOut(auth); // Sign out from Firebase
-      navigation.navigate('Login');
       toggleModal(); // Close the modal
-    } catch (error) {
-      console.error("Logout Error: ", error);
-    }
+   
   };
 
   const DismissKeyboard = ({ children }) => (

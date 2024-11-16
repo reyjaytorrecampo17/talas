@@ -39,7 +39,6 @@ export default function App() {
             <Stack.Screen name="RegisterScreen" component={RegisterScreen} options={{ headerShown: false }} />
           </>
         )}
-        
         <Stack.Screen name="Shop" component={Shop} options={{ headerShown: false }}/>
         <Stack.Screen name="Lessons" component={LessonScreen} options={{ headerShown: false }}/>
         <Stack.Screen name="TalasBooks" component={TalasBooks} options={{ headerShown: false }}/>

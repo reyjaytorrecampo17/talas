@@ -12,11 +12,11 @@ const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSelected, setSelection] = useState(false);
-
+  const [isPasswordVisible, setPasswordVisible] = useState(false);
   const [fontsLoaded] = useFonts({
     LilitaOne_400Regular,
   });
-
+  
   if (!fontsLoaded) {
     return (
       <View style={styles.loadingContainer}>
@@ -24,26 +24,35 @@ const LoginScreen = ({ navigation }) => {
       </View>
     );
   }
-
+  
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please enter both email and password');
+    const emailPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+    if (!emailPattern.test(email)) {
+      Alert.alert('Error', 'Please enter a valid email');
+      return;
+    }
+    if (password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters');
       return;
     }
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      // Reset navigation stack to navigate to the main app
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Navigation', params: { email: user.email, uid: user.uid } }],
-      });
+      // Proceed with navigation as usual
     } catch (error) {
-      console.error('Error logging in:', error.code, error.message);
-      Alert.alert('Login Error', error.message);
+      if (error.code === 'auth/invalid-email') {
+        Alert.alert('Invalid Email', 'The email address is not valid.');
+      } else if (error.code === 'auth/user-not-found') {
+        Alert.alert('User Not Found', 'No user found with this email address.');
+      } else {
+        Alert.alert('Login Error', error.message);
+      }
+    }
+    if (!isSelected) {
+      Alert.alert('Error', 'Please accept the Terms and Conditions');
+      return;
     }
   };
-
+  
   return (
     <View style={styles.container}>
       {fontsLoaded ? (
@@ -61,7 +70,7 @@ const LoginScreen = ({ navigation }) => {
       <TextInput
         style={styles.input}
         placeholder="Password"
-        secureTextEntry
+        secureTextEntry={!isPasswordVisible}
         value={password}
         onChangeText={setPassword}
       />
