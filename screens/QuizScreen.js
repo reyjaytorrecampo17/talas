@@ -9,7 +9,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { db ,auth} from '../services/firebase';
 import { collection, doc, getDoc ,updateDoc  , increment ,serverTimestamp } from "firebase/firestore";
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { useLevel } from '../context/LevelContext';
 
 
 const { width, height } = Dimensions.get('window');
@@ -39,7 +38,9 @@ const QuizScreen = () => {
   const [currentXP, setCurrentXP] = useState(0);
   const [nextLevelXP, setNextLevelXP] = useState(100); // Starting XP requirement
   const [level, setLevel] = React.useState(2);
-
+  const [timeLeft, setTimeLeft] = useState(30); // Set timer to 30 seconds per question
+  const [timerActive, setTimerActive] = useState(false); // Flag to control timer
+  const [points,setPoints] = useState();
 
 
 
@@ -54,7 +55,31 @@ const QuizScreen = () => {
       .sort((a, b) => a.sort - b.sort)
       .map(({ value }) => value);
   };
-  
+    // Timer logic using useEffect
+    useEffect(() => {
+      if (!timerActive || timeLeft <= 0) return;
+    
+      const timer = setInterval(() => {
+        setTimeLeft((prevTime) => prevTime - 1);
+      }, 1000);
+    
+      // Clean up the interval when the component unmounts or timer stops
+      return () => clearInterval(timer);
+    }, [timerActive, timeLeft]);
+    
+    // Function to handle when the timer runs out
+    useEffect(() => {
+      if (timeLeft === 0) {
+        handleTimeOut();
+      }
+    }, [timeLeft]);
+    
+    const handleTimeOut = () => {
+      alert('Time is up!');
+      proceedToNextQuestion(); // Move to the next question automatically
+    };
+    
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -212,91 +237,110 @@ const QuizScreen = () => {
     }
   }, [currentStoryId, currentQuestionIndex, storyMap]);
   
-  const handleAnswer = async (index, difficulty) => {
-    const userId = auth.currentUser?.uid;
-    if (!userId) {
-        console.error("User ID is not available");
-        return;
-    }
-
-    // Fetch current XP, level, and nextLevelXP from Firestore
-    const userDocRef = doc(collection(db, 'users'), userId);
-    const userDoc = await getDoc(userDocRef);
-
-    if (!userDoc.exists()) {
-        console.error("User document not found in Firestore");
-        return;
-    }
-
-    let { currentXP, level, nextLevelXP } = userDoc.data();
-
-    if (selectedAnswer === null) {
-        setSelectedAnswer(index);
-
-        const isAnswerCorrect = index === correctAnswerIndex;
-
-        if (!isAnswerCorrect) {
-            loseLife();
-        } else {
-            // Determine XP gain based on the difficulty level
-            let xpGain;
-            switch (difficulty) {
-                case 'easy':
-                    xpGain = 5;
-                    break;
-                case 'medium':
-                    xpGain = 10;
-                    break;
-                case 'hard':
-                    xpGain = 20;
-                    break;
-                default:
-                    xpGain = 10; // default XP if difficulty is not recognized
+      const handleAnswer = async (index, difficulty) => {
+            const userId = auth.currentUser?.uid;
+            if (!userId) {
+                console.error("User ID is not available");
+                return;
             }
-
-            console.log('XP Gain:', xpGain);
-
-            // Update local state first
-            let updatedXP = currentXP + xpGain;
-            let updatedNextLevelXP = nextLevelXP;
-            let newLevel = level;
-
-            // Check if the user has leveled up
-            if (updatedXP >= nextLevelXP) {
-                updatedXP -= nextLevelXP;
-                updatedNextLevelXP += 50;
-                newLevel += 1;
-                console.log('Level up! New level:', newLevel);
+        
+            // Fetch current XP, level, nextLevelXP, and points from Firestore
+            const userDocRef = doc(collection(db, 'users'), userId);
+            const userDoc = await getDoc(userDocRef);
+        
+            if (!userDoc.exists()) {
+                console.error("User document not found in Firestore");
+                return;
             }
-
-            // Update Firestore with the new values
-            try {
-                await updateDoc(userDocRef, {
-                    currentXP: updatedXP,
-                    nextLevelXP: updatedNextLevelXP,
-                    level: newLevel,
-                    lastLevelTimestamp: serverTimestamp()
-                });
-                console.log('Firestore updated successfully');
-            } catch (error) {
-                console.error("Firestore update error:", error);
+        
+            let { currentXP, level, nextLevelXP, points } = userDoc.data();
+        
+            // Initialize points if it's undefined
+            if (points === undefined) {
+                points = 0;
             }
+        
+            if (selectedAnswer === null) {
+                setSelectedAnswer(index);
+        
+                const isAnswerCorrect = index === correctAnswerIndex;
+        
+                if (!isAnswerCorrect) {
+                    loseLife(); // Handle losing a life
+                } else {
+                    // Determine XP gain based on the difficulty level
+                    let xpGain;
+                    switch (difficulty) {
+                        case 'easy':
+                            xpGain = 5;
+                            break;
+                        case 'medium':
+                            xpGain = 10;
+                            break;
+                        case 'hard':
+                            xpGain = 20;
+                            break;
+                        default:
+                            xpGain = 10;
+                    }
+        
+                    // Calculate points based on difficulty and remaining time
+                    let pointsGain;
+                    if (difficulty === 'easy') {
+                        pointsGain = Math.ceil(timeLeft / 2); // Example: 1 point for every 2 seconds left
+                    } else if (difficulty === 'medium') {
+                        pointsGain = timeLeft; // Example: 1 point per second left
+                    } else if (difficulty === 'hard') {
+                        pointsGain = timeLeft * 2; // Example: 2 points per second left
+                    }
+        
+                    console.log('Points Gain:', pointsGain);
+        
+                    // Update local state first
+                    let updatedXP = currentXP + xpGain;
+                    let updatedPoints = points + pointsGain;
+                    let updatedNextLevelXP = nextLevelXP;
+                    let newLevel = level;
+        
+                    // Check if the user has leveled up
+                    if (updatedXP >= nextLevelXP) {
+                        updatedXP -= nextLevelXP;
+                        updatedNextLevelXP += 50;
+                        newLevel += 1;
+                        console.log('Level up! New level:', newLevel);
+                    }
+        
+                    // Update Firestore with the new values
+                    try {
+                        await updateDoc(userDocRef, {
+                            currentXP: updatedXP,
+                            points: updatedPoints,
+                            nextLevelXP: updatedNextLevelXP,
+                            level: newLevel,
+                            lastLevelTimestamp: serverTimestamp(),
+                        });
+                        console.log('Firestore updated successfully');
+                    } catch (error) {
+                        console.error("Firestore update error:", error);
+                    }
+        
+                    // Update local state with the new values
+                    setCurrentXP(updatedXP);
+                    setPoints(updatedPoints);
+                    setLevel(newLevel);
+                    setNextLevelXP(updatedNextLevelXP);
+                }
+        
+                setIsCorrect(isAnswerCorrect);
+                setShowFeedbackModal(true);
+                playSound(isAnswerCorrect ? 'correct' : 'wrong');
+        
+                if (isAnswerCorrect) {
+                    setScore(prevScore => prevScore + 1);
+                }
+            }
+      };
 
-            // Update local state with the new values
-            setCurrentXP(updatedXP);
-            setLevel(newLevel);
-            setNextLevelXP(updatedNextLevelXP);
-        }
-
-        setIsCorrect(isAnswerCorrect);
-        setShowFeedbackModal(true);
-        playSound(isAnswerCorrect ? 'correct' : 'wrong');
-
-        if (isAnswerCorrect) {
-            setScore(prevScore => prevScore + 1);
-        }
-    }
-};
 
   const proceedToNextQuestion = () => {
     setShowFeedbackModal(false);
@@ -320,8 +364,8 @@ const QuizScreen = () => {
           setShowQuestions(false);
           
         } else {
-           // Play the final sound based on the score
-           if (score === totalQuestions) {
+          // Play the final sound based on the score
+          if (score === totalQuestions) {
             playSound('congratulations');
           } else if (score >= averageScore) {
             playSound('average');
@@ -380,12 +424,14 @@ const QuizScreen = () => {
 
   const handlePause = () => {
     setModalVisible(true);
+    setTimerActive(false);
   };
 
   const handleResume = () => {
     setModalVisible(false);
+     setTimerActive(true);
   };
-
+  
 
   return (
     <View style={styles.container}>
@@ -515,15 +561,22 @@ const QuizScreen = () => {
                   <Text style={styles.storyTitle}>{currentStory.title}</Text>
                   <Text style={styles.storyText}>{currentStory.text}</Text>
                   <Text style={styles.difficulty}>Difficulty: {currentStory.difficulty}</Text>
-                  <TouchableOpacity onPress={() => setShowQuestions(true)} style={styles.StartQuestionButton}>
-                    <Text style= {styles.StartQuestionButtonText}>Start Questions</Text>
+                  <TouchableOpacity 
+                  onPress={() => {
+                    setShowQuestions(true);
+                    setTimeLeft(30); // Reset timer for each question
+                    setTimerActive(true); // Start the timer
+                  }}
+                  style={styles.StartQuestionButton}>
+                  <Text style= {styles.StartQuestionButtonText}>Start Questions</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
                 <View style={styles.questionContainer}>
                 <Text style={styles.question}>{currentQuestion.question}</Text>
-            
-                
+                <Text style={[styles.timerText, { color: timeLeft < 10 ? 'red' : 'green' }]}>
+                  Time Left: {timeLeft} seconds
+                </Text>                 
                 {shuffledOptions.map((option, index) => (
                   <TouchableOpacity
                     key={index}
@@ -597,6 +650,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  }, 
+  timerText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginVertical: 10,
   },
   header:{
     height: height * 0.15,

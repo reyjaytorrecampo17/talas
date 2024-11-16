@@ -9,6 +9,7 @@ import Games from '../tabs/Games';
 import Dictionary from '../tabs/Dictionary';
 import Profile from '../tabs/Profile';
 import Home from '../tabs/Home';
+import Login from '../screens/Login';
 import * as Progress from 'react-native-progress'; // For Progress Bars
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
@@ -73,7 +74,7 @@ const ProfileHeader = ({ userId }) => {
       if (docSnapshot.exists()) {
         const userData = docSnapshot.data();
         setIgn(userData.ign); // Set user's IGN
-        setPoints(userData.currentXP); // Set user's current XP as points
+        setPoints(userData.points); // Set user's current XP as points
         setLevel(userData.level); // Set user's level
         setProgress(userData.currentXP / userData.nextLevelXP); // Calculate progress
       } else {
@@ -329,9 +330,9 @@ const Navigation = () => {
       options={{
         headerLeft: false,
         headerShown: true,
-        header: () => <ProfileHeader userId={currentUser?.uid} />, // Pass currentUser.uid to ProfileHeader
+        header: () => <ProfileHeader userId={currentUser?.uid} />,
       }}
-      initialParams={{ userId: currentUser?.uid }} // Pass currentUser.uid as userId prop
+      initialParams={{ userId: currentUser?.uid }}
     />
 
       <Tab.Screen
@@ -509,9 +510,9 @@ const styles = StyleSheet.create({
   dropdown: {
     position: 'absolute',
     top: 20, // Adjust this value to position the dropdown below the hamburger
-    left: -90,
+    left: -100,
     backgroundColor: '#fff',
-    width: 110,
+    width: 120,
     borderRadius: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -520,13 +521,13 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   menuItem: {
-    paddingVertical: 5,
-    paddingHorizontal: 5,
+    paddingVertical: 15,
+    paddingHorizontal: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
   menuText: {
-    fontSize: 15,
+    fontSize: 16,
     fontFamily: 'LilitaOne_400Regular',
     color: '#333 ',
   },
