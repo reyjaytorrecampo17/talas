@@ -59,27 +59,46 @@ const Leaderboards = ({ route }) => {
         <ScrollView>
           {/* Display the top 10 users */}
           <View style={styles.topContainer}>
-            {users.slice(0, 3).map((user, index) => (
+            <View style={styles.centeredTopUser}>
+              {users.slice(0, 1).map((user, index) => (
+                <View key={user.id} style={styles.topUser}>
+                  {/* Profile Image */}
+                  <Image
+                    source={require('../images/defaultImage.jpg')}
+                    style={{
+                      height: 80,
+                      width: 80,
+                      borderRadius: 100,
+                    }}
+                  />
+                  {/* Crown for the top user only */}
+                  <Image
+                    source={require('../images/crown.png')}
+                    style={{ height: 50, width: 70, top: -40, zIndex: 1, position: 'absolute' }}
+                  />
+                  {/* Rank Badge */}
+                  <View style={[styles.rankBadge, { backgroundColor: 'gold' }]}>
+                    <Text style={styles.rankText}>{index + 1}</Text>
+                  </View>
+                  <Text style={styles.username}>{user.ign}</Text>
+                  <Text style={styles.points}>{user.points} PTS.</Text>
+                </View>
+              ))}
+            </View>
+            {users.slice(1, 3).map((user, index) => (
               <View key={user.id} style={styles.topUser}>
                 {/* Profile Image */}
                 <Image
                   source={require('../images/defaultImage.jpg')}
                   style={{
-                    height: index === 0 ? 80 : 60,
-                    width: index === 0 ? 80 : 60,
+                    height: 60,
+                    width: 60,
                     borderRadius: 100,
                   }}
                 />
-                {/* Crown for the top user only */}
-                {index === 0 && (
-                  <Image
-                    source={require('../images/crown.png')}
-                    style={{ height: 50, width: 70, top: -40, zIndex: 1, position: 'absolute' }}
-                  />
-                )}
                 {/* Rank Badge */}
-                <View style={[styles.rankBadge, { backgroundColor: index === 0 ? 'gold' : 'silver' }]}>
-                  <Text style={styles.rankText}>{index + 1}</Text>
+                <View style={[styles.rankBadge, { backgroundColor: 'silver' }]}>
+                  <Text style={styles.rankText}>{index + 2}</Text>
                 </View>
                 <Text style={styles.username}>{user.ign}</Text>
                 <Text style={styles.points}>{user.points} PTS.</Text>
@@ -90,7 +109,7 @@ const Leaderboards = ({ route }) => {
           {/* Display the rest of the users (if needed) */}
           {users.slice(3).map((user, index) => (
             <View key={user.id} style={styles.restContainer}>
-              <Text style={styles.restTitle}>{index + 11}</Text>
+              <Text style={styles.restTitle}>{index + 4}</Text>
               <Text style={styles.username}>{user.ign}</Text>
               <Text style={styles.points}>{user.points} PTS.</Text>
             </View>
@@ -107,7 +126,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#9C59FE',
   },
   row: {
-    marginTop: 50,
+    marginTop: 20,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -122,6 +141,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 30,
     flexWrap: 'wrap', // This allows the top users to wrap to the next line if needed
+  },
+  centeredTopUser: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    width: '100%',
+    marginBottom: 20,
   },
   topUser: {
     alignItems: 'center',

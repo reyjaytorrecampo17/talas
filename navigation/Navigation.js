@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator, Modal } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator, Modal, TouchableWithoutFeedback  } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { LinearGradient } from 'expo-linear-gradient'; // Linear Gradient
 import * as Animatable from 'react-native-animatable'; // Animations
@@ -20,6 +20,8 @@ import { auth,db } from '../services/firebase'// Ensure this path is correct
 import { getAuth } from 'firebase/auth';
 import { doc, onSnapshot  } from 'firebase/firestore';
 import { useLevel } from '../context/LevelContext';
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
 const Tab = createBottomTabNavigator();
 
 // Custom Animated Icon Component with Realistic Image Icons
@@ -54,11 +56,23 @@ const ProfileHeader = ({ userId }) => {
   const [ign, setIgn] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [dropdownVisible, setDropdownVisible] = useState(false);
   const navigation = useNavigation();
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
+  const [notificationsModalVisible, setNotificationsModalVisible] = useState(false);
 
+  useFocusEffect(
+    useCallback(() => {
+      // Reset dropdown when the screen is focused
+      setDropdownVisible(false);
 
+      return () => {
+        // Cleanup if needed when leaving the screen
+        setDropdownVisible(false);
+      };
+    }, [])
+  );
   useEffect(() => {
     if (!userId) {
       console.error('No userId provided');
@@ -97,6 +111,15 @@ const ProfileHeader = ({ userId }) => {
   const toggleDropdown = () => {
     setDropdownVisible(!dropdownVisible);
   };
+  const toggleSettingsModal = () => {
+    setSettingsModalVisible(!settingsModalVisible);
+  };
+
+  const toggleNotificationsModal = () => {
+    setNotificationsModalVisible(!notificationsModalVisible);
+  };
+  const closeDropdown = () => setDropdownVisible(false);
+  
    const toggleModal = () => {
     setIsModalVisible(!isModalVisible);
   };
@@ -110,6 +133,12 @@ const ProfileHeader = ({ userId }) => {
       console.error("Logout Error: ", error);
     }
   };
+
+  const DismissKeyboard = ({ children }) => (
+    <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()} accessible={false}>
+      <View style={{ flex: 1 }}>{children}</View>
+    </TouchableWithoutFeedback>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -126,48 +155,54 @@ const ProfileHeader = ({ userId }) => {
       </View>
       {/* Level Badge with Level-up Animation */}
       <View style={styles.levelBadgeContainer}>
-      <View 
-        delay={1500} 
-        style={styles.levelBadge}
-        iterationCount={level > 38 ? 'infinite' : 1} // Flashing effect on level-up
-      >
-        <Text style={styles.levelText}>{level}</Text>
-      </View>
-      </View>
-      </View>
-      <View style={styles.DropdownContainer}>
-      <TouchableOpacity onPress={toggleDropdown} style={styles.hamburger}>
-        <Text style={styles.hamburgerText}>☰</Text>
-      </TouchableOpacity>
-      {dropdownVisible && (
-        <View style={styles.dropdown}>
-          <TouchableOpacity onPress={() => {toggleDropdown();}} style={styles.menuItem}>
-            <Text style={styles.menuText}>Settings</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => {toggleDropdown();}} style={styles.menuItem}>
-            <Text style={styles.menuText}>Notifications</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => {
-              toggleDropdown(); // Close the menu
-              navigation.navigate('ProfileScreen'); // Navigate to ProfileScreen
-            }}
-            style={styles.menuItem}
-          >
-            <Text style={styles.menuText}>Edit Profile</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => {
-              toggleDropdown(); // Close the menu
-              toggleModal(); // Call logout modal or logout function
-            }}
-            style={styles.menuItem}
-          >
-            <Text style={styles.menuText}>Logout</Text>
-          </TouchableOpacity>
+        <View 
+          delay={1500} 
+          style={styles.levelBadge}
+          iterationCount={level > 38 ? 'infinite' : 1} // Flashing effect on level-up
+        >
+          <Text style={styles.levelText}>{level}</Text>
         </View>
-      )}
-    </View>
+      </View>
+      </View>
+      <TouchableWithoutFeedback onPress={closeDropdown}>
+      <View pointerEvents="box-none" style={styles.DropdownContainer} onStartShouldSetResponder={() => {
+        if (dropdownVisible) setDropdownVisible(false);
+        Keyboard.dismiss();
+        return true; // Ensures touch is registered
+      }}>
+        <TouchableOpacity onPress={toggleDropdown} style={styles.hamburger} accessibilityRole="button" accessible={true} accessibilityLabel="Menu">
+          <Text style={styles.hamburgerText}>☰</Text>
+        </TouchableOpacity>
+        {dropdownVisible && (
+          <View style={styles.dropdown}>
+            <TouchableOpacity onPress={toggleSettingsModal} style={styles.menuItem}>
+              <Text style={styles.menuText}>Settings</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={toggleNotificationsModal} style={styles.menuItem}>
+              <Text style={styles.menuText}>Notifications</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                toggleDropdown();
+                navigation.navigate('ProfileScreen');
+              }}
+              style={styles.menuItem}
+            >
+              <Text style={styles.menuText}>Edit Profile</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                toggleDropdown();
+                toggleModal();
+              }}
+              style={styles.menuItem}
+            >
+              <Text style={styles.menuText}>Logout</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    </TouchableWithoutFeedback>
       <View style={{flexDirection: 'column'}}>
       <LinearGradient
           colors={['#003343', '#003343']} // Specify your gradient colors here
@@ -280,6 +315,42 @@ const ProfileHeader = ({ userId }) => {
                     </View>
                 </View>
             </Modal>
+            {/* Settings Modal */}
+      <Modal
+        visible={settingsModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={toggleSettingsModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Settings</Text>
+            <Text style={styles.modalContent}>Here you can change your settings.</Text>
+            <TouchableOpacity onPress={toggleSettingsModal} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Notifications Modal */}
+      <Modal
+        visible={notificationsModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={toggleNotificationsModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalTitle}>Notifications</Text>
+            <Text style={styles.modalContent}>Here are your notifications settings.</Text>
+            <TouchableOpacity onPress={toggleNotificationsModal} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 };
@@ -486,7 +557,8 @@ const styles = StyleSheet.create({
     marginLeft: '95%',
     top: 35,
     position: 'absolute',
-    zIndex: 3
+    zIndex: 3,
+    overflow: 'visible'
   },
   hamburger: {
     justifyContent: 'center',
@@ -519,6 +591,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 5,
     elevation: 5,
+    zIndex: 3,
+    overflow: 'visible'
   },
   menuItem: {
     paddingVertical: 15,
@@ -585,7 +659,53 @@ modalButton:{
   color: 'white',
   fontFamily: 'LilitaOne_400Regular',
   fontSize: 20
-}
+},
+overlay: {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  backgroundColor: 'rgba(0, 0, 0, 0.2)', // Optional, to dim background
+  zIndex: 999, // Ensure overlay is above everything
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+modalOverlay: {
+  flex: 1,
+  justifyContent: 'center',
+  alignItems: 'center',
+  backgroundColor: 'rgba(0, 0, 0, 0.5)', // Dim background
+},
+modalContainer: {
+  width: 300,
+  padding: 20,
+  backgroundColor: '#fff',
+  borderRadius: 8,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+modalTitle: {
+  fontSize: 18,
+  fontWeight: 'bold',
+  marginBottom: 10,
+},
+modalContent: {
+  fontSize: 16,
+  marginBottom: 20,
+  textAlign: 'center',
+},
+closeButton: {
+  marginTop: 10,
+  paddingVertical: 10,
+  paddingHorizontal: 20,
+  backgroundColor: '#007bff',
+  borderRadius: 5,
+},
+closeButtonText: {
+  fontSize: 16,
+  color: '#fff',
+},
 });
 
 export default Navigation;
