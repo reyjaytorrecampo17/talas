@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import { useFonts } from 'expo-font';
 import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
-import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../services/firebase'; // Ensure this path is correct
 
 const Leaderboards = ({ route }) => {
@@ -19,72 +19,80 @@ const Leaderboards = ({ route }) => {
     );
   }
 
-  // Fetch all users and their points
+  // Fetch and listen to changes in the 'users' collection
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, orderBy('currentXP', 'desc')); // Fetch and sort by currentXP
-        const querySnapshot = await getDocs(q);
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, orderBy('points', 'desc'));
 
+    // Real-time listener using onSnapshot
+    const unsubscribe = onSnapshot(
+      q,
+      (querySnapshot) => {
         const usersData = querySnapshot.docs.map((doc) => ({
           id: doc.id,
-          ...doc.data()
+          ...doc.data(),
         }));
-
-        setUsers(usersData);
+        setUsers(usersData);  // Update the state with the fetched users
         setLoading(false);
-      } catch (err) {
-        console.error('Error fetching users:', err);
+      },
+      (err) => {
         setError('Failed to fetch leaderboard data.');
         setLoading(false);
       }
-    };
+    );
 
-    fetchUsers();
+    // Cleanup listener on component unmount
+    return () => unsubscribe();
   }, []);
 
   return (
     <View style={styles.container}>
+      <View style={styles.row}>
+        <Text style={styles.header}>Leaderboard</Text>
+      </View>
+
       {loading ? (
         <ActivityIndicator size={50} color="#0000ff" />
       ) : error ? (
         <Text style={styles.error}>{error}</Text>
       ) : (
         <ScrollView>
-          {/* Display the top 3 users */}
+          {/* Display the top 10 users */}
           <View style={styles.topContainer}>
             {users.slice(0, 3).map((user, index) => (
               <View key={user.id} style={styles.topUser}>
+                {/* Profile Image */}
                 <Image
                   source={require('../images/defaultImage.jpg')}
                   style={{
                     height: index === 0 ? 80 : 60,
                     width: index === 0 ? 80 : 60,
-                    borderRadius: 100
+                    borderRadius: 100,
                   }}
                 />
+                {/* Crown for the top user only */}
                 {index === 0 && (
                   <Image
                     source={require('../images/crown.png')}
                     style={{ height: 50, width: 70, top: -40, zIndex: 1, position: 'absolute' }}
                   />
                 )}
-                <View style={styles.rankBadge}>
+                {/* Rank Badge */}
+                <View style={[styles.rankBadge, { backgroundColor: index === 0 ? 'gold' : 'silver' }]}>
                   <Text style={styles.rankText}>{index + 1}</Text>
                 </View>
                 <Text style={styles.username}>{user.ign}</Text>
-                <Text style={styles.points}>{user.currentXP} PTS.</Text>
+                <Text style={styles.points}>{user.points} PTS.</Text>
               </View>
             ))}
           </View>
 
-          {/* Display the rest of the users */}
+          {/* Display the rest of the users (if needed) */}
           {users.slice(3).map((user, index) => (
             <View key={user.id} style={styles.restContainer}>
-              <Text style={styles.restTitle}>{index + 4}</Text>
+              <Text style={styles.restTitle}>{index + 11}</Text>
               <Text style={styles.username}>{user.ign}</Text>
-              <Text style={styles.points}>{user.currentXP} PTS.</Text>
+              <Text style={styles.points}>{user.points} PTS.</Text>
             </View>
           ))}
         </ScrollView>
@@ -113,10 +121,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-evenly',
     alignItems: 'center',
     marginTop: 30,
+    flexWrap: 'wrap', // This allows the top users to wrap to the next line if needed
   },
   topUser: {
     alignItems: 'center',
     justifyContent: 'center',
+    marginVertical: 20,
+    marginHorizontal: 10,
   },
   rankBadge: {
     justifyContent: 'center',
@@ -126,7 +137,6 @@ const styles = StyleSheet.create({
     borderColor: 'black',
     borderWidth: 1,
     borderRadius: 100,
-    backgroundColor: 'gold',
     position: 'absolute',
     top: 60,
   },
