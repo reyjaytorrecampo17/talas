@@ -3,9 +3,9 @@ import { View, Text, ScrollView, StyleSheet, Image, ActivityIndicator } from 're
 import { useFonts } from 'expo-font';
 import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '../services/firebase'; // Ensure this path is correct
+import { db } from '../services/firebase';
 
-const Leaderboards = ({ route }) => {
+const Leaderboards = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,12 +19,10 @@ const Leaderboards = ({ route }) => {
     );
   }
 
-  // Fetch and listen to changes in the 'users' collection
   useEffect(() => {
     const usersRef = collection(db, 'users');
     const q = query(usersRef, orderBy('points', 'desc'));
 
-    // Real-time listener using onSnapshot
     const unsubscribe = onSnapshot(
       q,
       (querySnapshot) => {
@@ -32,7 +30,7 @@ const Leaderboards = ({ route }) => {
           id: doc.id,
           ...doc.data(),
         }));
-        setUsers(usersData);  // Update the state with the fetched users
+        setUsers(usersData);
         setLoading(false);
       },
       (err) => {
@@ -41,27 +39,55 @@ const Leaderboards = ({ route }) => {
       }
     );
 
-    // Cleanup listener on component unmount
     return () => unsubscribe();
   }, []);
 
-
-    return (
-      <View style={styles.container}>
-        {loading ? (
-          <ActivityIndicator size={50} color="#0000ff" />
-        ) : error ? (
-          <Text style={styles.error}>{error}</Text>
-        ) : (
-          <ScrollView>
-            {/* Display the top 3 users separately */}
-            <View style={styles.topContainer}>
-              {users.slice(0, 1).map((user, index) => (
+  return (
+    <View style={styles.container}>
+      {loading ? (
+        <ActivityIndicator size={50} color="#0000ff" />
+      ) : error ? (
+        <Text style={styles.error}>{error}</Text>
+      ) : (
+        <ScrollView>
+          <View style={styles.topContainer}>
+            {users.slice(0, 1).map((user, index) => (
+              <View key={user.id} style={styles.topUser}>
+                <Image
+                  source={
+                    user.profilePicture
+                      ? { uri: user.profilePicture }
+                      : require('../images/defaultImage.jpg')
+                  }
+                  style={styles.profileImage}
+                />
+                <Image source={require('../images/crown.png')} style={styles.crownImage} />
+                <View style={[styles.rankBadge, { backgroundColor: 'gold' }]}>
+                  <Text style={styles.rankText}>{index + 1}</Text>
+                </View>
+                <Text style={styles.username}>{user.ign}</Text>
+                <View style={styles.pointsContainer}>
+                  <Image source={require('../images/star.png')} style={styles.starImage} />
+                  <Text style={styles.points}>{user.points} PTS.</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+          {/* Display the second and third ranks */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center', top: -120 }}>
+            <View style={styles.topContainer2}>
+              {users.slice(1, 2).map((user, index) => (
                 <View key={user.id} style={styles.topUser}>
-                  <Image source={require('../images/defaultImage.jpg')} style={styles.profileImage} />
-                  <Image source={require('../images/crown.png')} style={styles.crownImage} />
-                  <View style={[styles.rankBadge, { backgroundColor: 'gold' }]}>
-                    <Text style={styles.rankText}>{index + 1}</Text>
+                  <Image
+                    source={
+                      user.profilePicture
+                        ? { uri: user.profilePicture }
+                        : require('../images/defaultImage.jpg')
+                    }
+                    style={styles.profileImage}
+                  />
+                  <View style={[styles.rankBadge, { backgroundColor: 'silver' }]}>
+                    <Text style={styles.rankText}>{index + 2}</Text>
                   </View>
                   <Text style={styles.username}>{user.ign}</Text>
                   <View style={styles.pointsContainer}>
@@ -71,46 +97,44 @@ const Leaderboards = ({ route }) => {
                 </View>
               ))}
             </View>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center', top: -120 }}>
-              <View style={styles.topContainer2}>
-                {users.slice(1, 2).map((user, index) => (
-                  <View key={user.id} style={styles.topUser}>
-                    <Image source={require('../images/defaultImage.jpg')} style={styles.profileImage} />
-                    <View style={[styles.rankBadge, { backgroundColor: 'silver' }]}>
-                      <Text style={styles.rankText}>{index + 2}</Text>
-                    </View>
-                    <Text style={styles.username}>{user.ign}</Text>
-                    <View style={styles.pointsContainer}>
-                      <Image source={require('../images/star.png')} style={styles.starImage} />
-                      <Text style={styles.points}>{user.points} PTS.</Text>
-                    </View>
+            <View style={styles.topContainer3}>
+              {users.slice(2, 3).map((user, index) => (
+                <View key={user.id} style={styles.topUser}>
+                  <Image
+                    source={
+                      user.profilePicture
+                        ? { uri: user.profilePicture }
+                        : require('../images/defaultImage.jpg')
+                    }
+                    style={styles.profileImage}
+                  />
+                  <View style={[styles.rankBadge, { backgroundColor: '#cd7f32' }]}>
+                    <Text style={styles.rankText}>{index + 3}</Text>
                   </View>
-                ))}
-              </View>
-              <View style={styles.topContainer3}>
-                {users.slice(2, 3).map((user, index) => (
-                  <View key={user.id} style={styles.topUser}>
-                    <Image source={require('../images/defaultImage.jpg')} style={styles.profileImage} />
-                    <View style={[styles.rankBadge, { backgroundColor: '#cd7f32' }]}>
-                      <Text style={styles.rankText}>{index + 3}</Text>
-                    </View>
-                    <Text style={styles.username}>{user.ign}</Text>
-                    <View style={styles.pointsContainer}>
-                      <Image source={require('../images/star.png')} style={styles.starImage} />
-                      <Text style={styles.points}>{user.points} PTS.</Text>
-                    </View>
+                  <Text style={styles.username}>{user.ign}</Text>
+                  <View style={styles.pointsContainer}>
+                    <Image source={require('../images/star.png')} style={styles.starImage} />
+                    <Text style={styles.points}>{user.points} PTS.</Text>
                   </View>
-                ))}
-              </View>
+                </View>
+              ))}
             </View>
-            <View style={{ justifyContent: 'center', alignItems: 'center', top: -130 }}>
+          </View>
+          {/* Display other ranks */}
+          <View style={{ justifyContent: 'center', alignItems: 'center', top: -130 }}>
             <ScrollView>
-              {/* Display users ranked 4 to 10 */}
               {users.slice(3, 10).map((user, index) => (
                 <View key={user.id} style={styles.restContainer}>
                   <View style={styles.restUser}>
                     <Text style={styles.restText}>{index + 4}</Text>
-                    <Image source={require('../images/defaultImage.jpg')} style={styles.restprofileImage} />
+                    <Image
+                      source={
+                        user.profilePicture
+                          ? { uri: user.profilePicture }
+                          : require('../images/defaultImage.jpg')
+                      }
+                      style={styles.restprofileImage}
+                    />
                     <Text style={styles.restusername}>{user.ign}</Text>
                     <View style={styles.pointsContainer}>
                       <Image source={require('../images/star.png')} style={styles.starImage} />
@@ -122,11 +146,11 @@ const Leaderboards = ({ route }) => {
             </ScrollView>
           </View>
         </ScrollView>
-        )}
-      </View>
-    );
-    
-};  
+      )}
+    </View>
+  );
+};
+
 
 const styles = StyleSheet.create({
   container: {

@@ -61,7 +61,7 @@ const ProfileHeader = ({ userId }) => {
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [notificationsModalVisible, setNotificationsModalVisible] = useState(false);
-
+  const [profilePicture, setProfilePicture] = useState(null);
   useFocusEffect(
     useCallback(() => {
       // Reset dropdown when the screen is focused
@@ -80,33 +80,36 @@ const ProfileHeader = ({ userId }) => {
       setLoading(false);
       return;
     }
-  
+
     const userDocRef = doc(db, 'users', userId);
-    
+
     // Set up a real-time listener
-    const unsubscribe = onSnapshot(userDocRef, (docSnapshot) => {
-      if (docSnapshot.exists()) {
-        const userData = docSnapshot.data();
-        setIgn(userData.ign); // Set user's IGN
-        setPoints(userData.points); // Set user's current XP as points
-        setLevel(userData.level); // Set user's level
-        setProgress(userData.currentXP / userData.nextLevelXP); // Calculate progress
-      } else {
-        console.log('No such user!');
-        setError('No such user!');
+    const unsubscribe = onSnapshot(
+      userDocRef,
+      (docSnapshot) => {
+        if (docSnapshot.exists()) {
+          const userData = docSnapshot.data();
+          setIgn(userData.ign || 'Guest'); // Set user's IGN
+          setPoints(userData.points || 0); // Set user's current XP as points
+          setLevel(userData.level || 0); // Set user's level
+          setProgress(userData.currentXP / userData.nextLevelXP || 0); // Calculate progress
+          setProfilePicture(userData.profilePicture || '../images/defaultImage.jpg'); // Default profile picture
+        } else {
+          console.log('No such user!');
+          setError('No such user!');
+        }
+        setLoading(false);
+      },
+      (err) => {
+        console.error('Error listening to user data:', err);
+        setError('Failed to listen to user data.');
+        setLoading(false);
       }
-      setLoading(false);
-    }, (err) => {
-      console.error('Error listening to user data:', err);
-      setError('Failed to listen to user data.');
-      setLoading(false);
-    });
-  
+    );
+
     // Cleanup the listener on component unmount
     return () => unsubscribe();
   }, [userId]);
-  
-  
   
   const toggleDropdown = () => {
     setDropdownVisible(!dropdownVisible);
@@ -149,7 +152,7 @@ const ProfileHeader = ({ userId }) => {
       <Animatable.Image
         animation="bounceIn"
         delay={500}
-        source={require('../images/defaultImage.jpg')} // Replace with the correct local path
+        source={profilePicture ? { uri: profilePicture } : require('../images/defaultImage.jpg')}
         style={styles.profileImage}
       />
       </View>
@@ -422,8 +425,7 @@ const Navigation = () => {
         options={{
           headerLeft: false,
           headerShown: true,
-          header: () => <ProfileHeader userId={currentUser?.uid} />
-          , // Use the ProfileHeader here
+          header: () => <ProfileHeader userId={currentUser?.uid} />, // Use the ProfileHeader here
         }}
       />
       <Tab.Screen
@@ -457,8 +459,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 10,
-    paddingBottom: 60
-    
+    paddingBottom: 60,
   },
   profileImage: {
     width: 60,
