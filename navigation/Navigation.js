@@ -71,7 +71,7 @@ const ProfileHeader = ({ userId }) => {
       setLoading(false);
       return;
     }
-  
+
     const userDocRef = doc(db, 'users', userId);
   
     // Set up a real-time listener
@@ -80,14 +80,19 @@ const ProfileHeader = ({ userId }) => {
       (docSnapshot) => {
         if (docSnapshot.exists()) {
           const userData = docSnapshot.data();
+          const userProfilePicture = userData.profilePicture || '';
           setIgn(userData.ign || 'Guest'); // Set user's IGN
           setPoints(userData.points || 0); // Set user's current XP as points
           setLevel(userData.level || 0); // Set user's level
           setProgress(userData.currentXP / userData.nextLevelXP || 0); // Calculate progress
-          setProfilePicture(userData.profilePicture || ''); // Set profile picture, default to an empty string
+          setProfilePicture(userData.profilePicture || '');
+          setProfilePicture(userProfilePicture);
+          console.log('Profile Picture:', userProfilePicture);
+          setLoading(false); 
         } else {
           console.log('No such user!');
           setError('No such user!');
+          
         }
         setLoading(false);
       },
@@ -301,8 +306,8 @@ const ProfileHeader = ({ userId }) => {
                 visible={isModalVisible}
                 onRequestClose={toggleModal}
             >
-                <View style={styles.modalContainer}>
-                    <View style={styles.modalContent}>
+                <View style={styles.ExitmodalContainer}>
+                    <View style={styles.ExitmodalContent}>
                         <Text style={styles.modalText}>Leaving so soon?</Text>
                         <View style={{flexDirection: 'row'}}>
                         <TouchableOpacity onPress={handleLogout}>
@@ -326,7 +331,7 @@ const ProfileHeader = ({ userId }) => {
         onRequestClose={toggleSettingsModal}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
+          <View style={styles.SettingsmodalContainer}>
             <Text style={styles.modalTitle}>Settings</Text>
             <Text style={styles.modalContent}>Here you can change your settings.</Text>
             <TouchableOpacity onPress={toggleSettingsModal} style={styles.closeButton}>
@@ -363,7 +368,7 @@ const Navigation = () => {
   const currentUser = auth.currentUser; // Get the current user
   return (
     <Tab.Navigator
-      initialRouteName="Home"
+      initialRouteName="Profile"
       screenOptions={({ route }) => ({
         tabBarStyle: { backgroundColor: '#2c2964', position: 'absolute' },
         tabBarActiveTintColor: '#9146FF', // This controls the color when focused
@@ -459,7 +464,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 10,
-    paddingBottom: 60,
+    paddingBottom: 60
+    
   },
   profileImage: {
     width: 60,
@@ -558,8 +564,7 @@ const styles = StyleSheet.create({
     marginLeft: '95%',
     top: 35,
     position: 'absolute',
-    zIndex: 3,
-    overflow: 'visible'
+    zIndex: 3
   },
   hamburger: {
     justifyContent: 'center',
@@ -592,8 +597,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 5,
     elevation: 5,
-    zIndex: 3,
-    overflow: 'visible'
   },
   menuItem: {
     paddingVertical: 15,
@@ -607,18 +610,18 @@ const styles = StyleSheet.create({
     color: '#333 ',
   },
   modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.9)', // Semi-transparent background
-},
-modalContent: {
-    height: 200,
-    width: 300,
+    width: 300, // Modal width
     padding: 20,
-    backgroundColor: '#B57BFE',
+    backgroundColor: 'white',
     borderRadius: 10,
     alignItems: 'center',
+},
+modalContent: {
+  height: 200,
+  width: 300,
+  padding: 20,
+  borderRadius: 10,
+  alignItems: 'center',
 },
 modalText: {
     marginBottom: 20,
@@ -661,52 +664,45 @@ modalButton:{
   fontFamily: 'LilitaOne_400Regular',
   fontSize: 20
 },
-overlay: {
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  backgroundColor: 'rgba(0, 0, 0, 0.2)', // Optional, to dim background
-  zIndex: 999, // Ensure overlay is above everything
-  justifyContent: 'center',
-  alignItems: 'center',
+SettingsmodalContainer:{
+    width: 300, // Modal width
+    padding: 20,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    alignItems: 'center',
 },
 modalOverlay: {
   flex: 1,
   justifyContent: 'center',
   alignItems: 'center',
-  backgroundColor: 'rgba(0, 0, 0, 0.5)', // Dim background
+  backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent overlay
 },
-modalContainer: {
-  width: 300,
-  padding: 20,
-  backgroundColor: '#fff',
-  borderRadius: 8,
-  alignItems: 'center',
-  justifyContent: 'center',
+closeButtonText:{
+    color: 'white',
+    fontFamily: 'LilitaOne_400Regular',
+    fontSize: 20
 },
-modalTitle: {
-  fontSize: 18,
-  fontWeight: 'bold',
-  marginBottom: 10,
-},
-modalContent: {
-  fontSize: 16,
-  marginBottom: 20,
-  textAlign: 'center',
-},
-closeButton: {
-  marginTop: 10,
-  paddingVertical: 10,
-  paddingHorizontal: 20,
-  backgroundColor: '#007bff',
-  borderRadius: 5,
-},
-closeButtonText: {
-  fontSize: 16,
-  color: '#fff',
-},
+closeButton:{
+    marginTop: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: '#007bff',
+    borderRadius: 5,
+  },
+  ExitmodalContainer:{
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.9)', // Semi-transparent background
+  },
+  ExitmodalContent:{
+    height: 200,
+    width: 300,
+    padding: 20,
+    backgroundColor: '#B57BFE',
+    borderRadius: 10,
+    alignItems: 'center',
+  }
 });
 
 export default Navigation;

@@ -6,6 +6,7 @@ import { useFonts } from 'expo-font';
 import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
 
 const LessonScreen = ({navigation}) => {
+  
     const [fontsLoaded] = useFonts({
         LilitaOne_400Regular,
       });

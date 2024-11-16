@@ -403,7 +403,7 @@ const QuizScreen = () => {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <LottieView
-          source={require('../assets/loading.json')} // Update the path to your Lottie animation
+          source={require('../assets/loading3.json')} // Update the path to your Lottie animation
           autoPlay
           loop
           style={{ width: 400, height: 400 }}
