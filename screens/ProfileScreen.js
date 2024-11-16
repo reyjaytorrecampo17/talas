@@ -119,24 +119,65 @@ const ProfileScreen = () => {
 
   const handleImageUpload = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
+  
     if (permissionResult.granted === false) {
       Alert.alert("Permission to access camera roll is required!");
       return;
     }
-
+  
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [4, 3],
       quality: 1,
     });
-
+  
     if (!result.canceled) {
       setImageUri({ uri: result.assets[0].uri });
-      await uploadImage(result.assets[0].uri);
+      await uploadImageToCloudinary(result.assets[0].uri);
     }
   };
+  
+  const uploadImageToCloudinary = async (uri) => {
+    try {
+      setLoadingUpload(true);
+  
+      // Prepare the data for upload
+      const data = new FormData();
+      data.append('file', {
+        uri,
+        type: 'image/jpeg',
+        name: `profile_pic_${Date.now()}.jpg`,
+      });
+      data.append('upload_preset', 'profile_pics'); // Replace with your Cloudinary upload preset
+  
+      // Upload to Cloudinary
+      const response = await fetch('https://api.cloudinary.com/v1_1/dc9e1ufq3/image/upload', {
+        method: 'POST',
+        body: data,
+      });
+  
+      const jsonResponse = await response.json();
+  
+      if (jsonResponse.secure_url) {
+        const downloadURL = jsonResponse.secure_url;
+  
+        // Save the URL to Firestore
+        await updateDoc(doc(db, 'users', user.uid), { profilePicture: downloadURL });
+  
+        Alert.alert("Profile picture uploaded successfully!");
+        setImageUri({ uri: downloadURL });
+      } else {
+        throw new Error('Cloudinary upload failed');
+      }
+    } catch (error) {
+      console.error("Error in Cloudinary upload:", error);
+      Alert.alert("Upload failed", error.message);
+    } finally {
+      setLoadingUpload(false);
+    }
+  };
+  
 
   const uploadImage = async (uri) => {
     try {
