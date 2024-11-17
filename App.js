@@ -13,6 +13,7 @@ import Shop from './screens/Shop';
 import LessonScreen from './screens/LessonScreen';
 import TalasBooks from './screens/TalasBooks';
 import UnitScreen from './screens/UnitScreen';
+import Vocabulary from './screens/Unit1/Vocabulary';
 import { LevelProvider } from './context/LevelContext';
 
 const Stack = createStackNavigator();
@@ -47,6 +48,7 @@ export default function App() {
         <Stack.Screen name="QuizScreen" component={QuizScreen} options={{ headerShown: false }} />
         <Stack.Screen name="PretestScreen" component={PretestScreen} options={{ headerShown: false }} />
         <Stack.Screen name="UnitScreen" component={UnitScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Vocabulary" component={Vocabulary} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
     </LevelProvider>

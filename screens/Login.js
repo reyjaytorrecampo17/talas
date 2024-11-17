@@ -1,13 +1,24 @@
 import React, { useState } from 'react';
-import { View, TextInput, Text, TouchableOpacity, Alert, Image, StyleSheet, ActivityIndicator, Dimensions } from 'react-native';
+import {
+  View,
+  TextInput,
+  Text,
+  TouchableOpacity,
+  Alert,
+  Image,
+  StyleSheet,
+  ActivityIndicator,
+  Dimensions,
+  ScrollView,
+} from 'react-native';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from'../services/firebase' // Adjust the import path if needed
+import { auth } from '../services/firebase'; // Adjust the import path if needed
 import Checkbox from 'expo-checkbox';
 import { useFonts } from 'expo-font';
 import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
 
-
 const { width, height } = Dimensions.get('window');
+
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,7 +27,7 @@ const LoginScreen = ({ navigation }) => {
   const [fontsLoaded] = useFonts({
     LilitaOne_400Regular,
   });
-  
+
   if (!fontsLoaded) {
     return (
       <View style={styles.loadingContainer}>
@@ -24,32 +35,28 @@ const LoginScreen = ({ navigation }) => {
       </View>
     );
   }
-  
+
   const handleLogin = async () => {
     if (!isSelected) {
       Alert.alert('Error', 'Please accept the Terms and Conditions to Login.');
-      return; // Stop execution if not checked
+      return;
     }
-  
-    // Validate email format
+
     const emailPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
     if (!emailPattern.test(email)) {
       Alert.alert('Error', 'Please enter a valid email');
-      return; // Stop execution if email is invalid
+      return;
     }
-  
-    // Validate password length
+
     if (password.length < 6) {
       Alert.alert('Error', 'Password must be at least 6 characters');
-      return; // Stop execution if password is too short
+      return;
     }
-  
+
     try {
-      // Attempt login
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log('User logged in:', userCredential.user);
     } catch (error) {
-      // Handle specific Firebase auth errors
       if (error.code === 'auth/invalid-email') {
         Alert.alert('Invalid Email', 'The email address is not valid.');
       } else if (error.code === 'auth/user-not-found') {
@@ -59,80 +66,74 @@ const LoginScreen = ({ navigation }) => {
       }
     }
   };
-  
+
   return (
-    <View style={styles.container}>
-      {fontsLoaded ? (
-      <>
-      <View style={styles.logocon}>
-      <Image source={require('../images/logo.png')} style={styles.logo} resizeMode="contain" />
-      </View>
-      <View style={styles.spc} />
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        secureTextEntry={!isPasswordVisible}
-        value={password}
-        onChangeText={setPassword}
-      />
-      <Text style={styles.forgotpassTxt}>Forgot Password?</Text>
-      <Checkbox
-        value={isSelected}
-        onValueChange={setSelection}
-        style={styles.checkbox}
-      />
-      <Text style={styles.label}>
-        I have read and accept <Text style={styles.termsCon}>Terms and Condition</Text> and <Text style={styles.termsCon}>Privacy policy</Text>
-      </Text>
-      <View style={styles.btnContainer}>
-        <TouchableOpacity style={styles.LoginButton} onPress={handleLogin}>
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <View style={styles.container}>
+        <View style={styles.logoContainer}>
+          <Image
+            source={require('../images/logo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </View>
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          secureTextEntry={!isPasswordVisible}
+          value={password}
+          onChangeText={setPassword}
+        />
+        <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+        <View style={styles.checkboxContainer}>
+          <Checkbox value={isSelected} onValueChange={setSelection} style={styles.checkbox} />
+          <Text style={styles.label}>
+            I have read and accept{' '}
+            <Text style={styles.link}>Terms and Conditions</Text> and{' '}
+            <Text style={styles.link}>Privacy Policy</Text>
+          </Text>
+        </View>
+        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
           <Text style={styles.buttonText}>Login</Text>
         </TouchableOpacity>
-        <View style={{top: 30}}>
-        <Text style={styles.linkText} onPress={() => navigation.navigate('RegisterScreen')}>
-          Don't have an account? <Text style={styles.RegisterText}>Register Here</Text>
+        <Text style={styles.registerLink} onPress={() => navigation.navigate('RegisterScreen')}>
+          Don't have an account? <Text style={styles.registerText}>Register Here</Text>
         </Text>
-        </View>
       </View>
-      </>
-      ) : (
-        <ActivityIndicator size="24" color="#ffffff" />
-      )}
-    </View>
+    </ScrollView>
   );
 };
 
-// Styles for the component
+// Styles
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
     backgroundColor: '#9146FF',
   },
-  logo: {
-    width: width * 1, // Adjust logo width relative to screen width (90%)
-    height: height * .6,
-    aspectRatio: 1, // Maintains the aspect ratio (1:1 here, adjust based on your logo)
-    resizeMode: 'contain',
-  },
-  logocon: {
-    position: 'absolute',
-    top: -100,
-    left: 17,
-    right: 0,
+  container: {
+    flex: 1,
+    paddingHorizontal: width * 0.05,
     alignItems: 'center',
-    paddingTop: width * 0.1,
   },
-  spc: {
-    height: 300,
+  logoContainer: {
+    marginTop: height * 0.1,
+    marginBottom: height * 0.05,
+  },
+  logo: {
+    width: width * 0.9,
+    height: height * 0.3,
   },
   input: {
+    width: '100%',
     height: 50,
     borderColor: '#ddd',
     borderWidth: 1,
@@ -142,78 +143,80 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     fontFamily: 'LilitaOne_400Regular',
   },
-  forgotpassTxt: {
-    fontSize: 15,
-    fontFamily: 'LilitaOne_400Regular',
+  forgotPasswordText: {
+    alignSelf: 'flex-end',
     color: '#a9a9a9',
-    left: '65%',
+    fontSize: width * 0.05,
     marginBottom: 20,
     textShadowColor: 'black',  
-    textShadowOffset: { width: 1, height: 1 },  
+    textShadowOffset: { width: 2, height: 2 },  
     textShadowRadius: 2, 
+    fontFamily: 'LilitaOne_400Regular',
   },
-  btnContainer: {
-    justifyContent: 'center',
+  checkboxContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
     alignItems: 'center',
-    marginTop: -10,
-    marginBottom: 30,
+    marginBottom: 50,
+    width: width * 0.86,
+    left: -10
   },
-  LoginButton: {
-    alignItems: 'center',
+  checkbox: {
+    marginRight: 10,
+    backgroundColor: 'white',
+    left: 5,
+    top: -7,
+  },
+  label: {
+    fontSize: width * 0.05,
+    color: '#fff',
+    textShadowColor: 'black',  
+    textShadowOffset: { width: 2, height: 2 },  
+    textShadowRadius: 2, 
+    fontFamily: 'LilitaOne_400Regular',
+  },
+  link: {
+    color: '#007fff',
+    textShadowColor: 'black',  
+    textShadowOffset: { width: 2, height: 2 },  
+    textShadowRadius: 2, 
+    fontSize: width * 0.05,
+    fontFamily: 'LilitaOne_400Regular',
+  },
+  loginButton: {
     backgroundColor: '#007fff',
-    paddingVertical: 5,
-    borderRadius: 5,
+    borderRadius: 8,
+    width: '70%',
+    alignItems: 'center',
+    paddingVertical: 15,
+    marginBottom: 50,
     borderWidth: 1,
     borderColor: 'black',
-    width: 200,
   },
   buttonText: {
     color: '#fff',
-    fontSize: width * 0.09,
+    fontSize: width * 0.05,
     fontFamily: 'LilitaOne_400Regular',
     textShadowColor: 'black',  
     textShadowOffset: { width: 2, height: 2 },  
     textShadowRadius: 2, 
   },
-  checkbox: {
-    alignSelf: 'flex-start',
-    left: 5,
-    top: 1,
-    backgroundColor: 'white',
-  },
-  label: {
-    margin: 10,
-    fontSize: 18,
-    marginTop: -20,
-    marginBottom: 40,
-    left: 30,
+  registerLink: {
+    fontSize: width * 0.05,
     color: '#fff',
     fontFamily: 'LilitaOne_400Regular',
     textShadowColor: 'black',  
     textShadowOffset: { width: 2, height: 2 },  
     textShadowRadius: 2, 
   },
-  termsCon:{
-    color: '#007fff'
-  },
-  RegisterText: {
-    fontFamily: 'LilitaOne_400Regular',
+  registerText: {
+    color: '#19C74A',
     textDecorationLine: 'underline',
-    margin: 20,
-    top: 20,
-    fontSize: 18,
-    color: '#19C74A'
-  },
-  linkText: {
-    fontSize: 20,
-    textAlign: 'center',
-    color: '#fff',
-    marginTop: 20,
-    marginBottom: 10,
-    fontFamily: 'LilitaOne_400Regular',
     textShadowColor: 'black',  
     textShadowOffset: { width: 2, height: 2 },  
     textShadowRadius: 2, 
+    fontSize: width * 0.06,
+    fontFamily: 'LilitaOne_400Regular',
   },
 });
 

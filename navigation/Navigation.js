@@ -615,10 +615,11 @@ const styles = StyleSheet.create({
   },
   dropdown: {
     position: 'absolute',
-    top: 20,
-    left: -100,
+    top: -18,
+    left: -150,
     backgroundColor: '#fff',
     width: 120,
+    height: 150,
     borderRadius: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -628,7 +629,7 @@ const styles = StyleSheet.create({
     zIndex: 1000, // Ensure the dropdown is above other elements
   },
   menuItem: {
-    paddingVertical: 5,
+    paddingVertical: 9,
     paddingHorizontal: 5,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',

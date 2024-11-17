@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Image, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Image, ActivityIndicator, Dimensions } from 'react-native';
 import { useFonts } from 'expo-font';
 import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../services/firebase';
+
+// Get device dimensions for responsiveness
+const { width, height } = Dimensions.get('window');
 
 const Leaderboards = () => {
   const [users, setUsers] = useState([]);
@@ -13,7 +16,7 @@ const Leaderboards = () => {
 
   if (!fontsLoaded) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={styles.loaderContainer}>
         <ActivityIndicator size={50} color="#0000ff" />
       </View>
     );
@@ -49,7 +52,7 @@ const Leaderboards = () => {
       ) : error ? (
         <Text style={styles.error}>{error}</Text>
       ) : (
-        <ScrollView>
+        <View contentContainerStyle={styles.scrollViewContainer}>
           <View style={styles.topContainer}>
             {users.slice(0, 1).map((user, index) => (
               <View key={user.id} style={styles.topUser}>
@@ -73,8 +76,9 @@ const Leaderboards = () => {
               </View>
             ))}
           </View>
+
           {/* Display the second and third ranks */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'center', top: -120 }}>
+          <View style={styles.rankContainer}>
             <View style={styles.topContainer2}>
               {users.slice(1, 2).map((user, index) => (
                 <View key={user.id} style={styles.topUser}>
@@ -121,22 +125,28 @@ const Leaderboards = () => {
             </View>
           </View>
           {/* Display other ranks */}
-          <View style={{ justifyContent: 'center', alignItems: 'center', top: -130 }}>
+          <View style={{height: height * 0.5, paddingBottom: 120}}>
             <ScrollView>
               {users.slice(3, 10).map((user, index) => (
                 <View key={user.id} style={styles.restContainer}>
                   <View style={styles.restUser}>
-                    <Text style={styles.restText}>{index + 4}</Text>
-                    <Image
-                      source={
-                        user.profilePicture
-                          ? { uri: user.profilePicture }
-                          : require('../images/defaultImage.jpg')
-                      }
-                      style={styles.restprofileImage}
-                    />
-                    <Text style={styles.restusername}>{user.ign}</Text>
-                    <View style={styles.pointsContainer}>
+                    <View style={styles.column1}>
+                      <Text style={styles.restText}>{index + 4}</Text>
+                    </View>
+                    <View style={styles.column2}>
+                      <Image
+                        source={
+                          user.profilePicture
+                            ? { uri: user.profilePicture }
+                            : require('../images/defaultImage.jpg')
+                        }
+                        style={styles.restprofileImage}
+                      />
+                    </View>
+                    <View style={styles.column}>
+                      <Text style={styles.restusername}>{user.ign}</Text>
+                    </View>
+                    <View style={styles.column3}>
                       <Image source={require('../images/star.png')} style={styles.starImage} />
                       <Text style={styles.restpoints}>{user.points} PTS.</Text>
                     </View>
@@ -145,40 +155,52 @@ const Leaderboards = () => {
               ))}
             </ScrollView>
           </View>
-        </ScrollView>
+        </View>
       )}
     </View>
   );
 };
-
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#9C59FE',
   },
+  scrollViewContainer: {
+    paddingBottom: 50,
+  },
+  loaderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   topContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 15,
-    flexWrap: 'wrap', // This allows the top users to wrap to the next line if needed
+    flexWrap: 'wrap',
   },
   topContainer2: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 15,
-    flexWrap: 'wrap', // This allows the top users to wrap to the next line if needed
-    left: -20
+    flexWrap: 'wrap',
+    left: -20,
   },
   topContainer3: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 15,
-    flexWrap: 'wrap', // This allows the top users to wrap to the next line if needed
-    left: 20
+    flexWrap: 'wrap',
+    left: 20,
+  },
+  rankContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    marginTop: -120,
   },
   topUser: {
     alignItems: 'center',
@@ -187,26 +209,18 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   profileImage: {
-    height: 90,
-    width: 90,
+    height: width * 0.24, // 20% of the screen width
+    width: width * 0.24,  // 20% of the screen width
     borderRadius: 100,
     borderWidth: 2,
-    margin: 5
-  },
-  restprofileImage:{
-    top: -8,
-    marginRight: 10,
-    height: 40,
-    width: 40,
-    borderRadius: 100,
-    borderWidth: 2,
+    margin: 5,
   },
   crownImage: {
     height: 50,
     width: 70,
     top: -30,
     zIndex: 1,
-    position: 'absolute'
+    position: 'absolute',
   },
   rankBadge: {
     justifyContent: 'center',
@@ -223,14 +237,6 @@ const styles = StyleSheet.create({
     fontFamily: 'LilitaOne_400Regular',
     color: '#333',
     fontSize: 20,
-    marginlef: -10,
-  },
-  restText:{
-    fontFamily: 'LilitaOne_400Regular',
-    color: '#333',
-    fontSize: 20,
-    marginlef: -10,
-    marginRight: 10
   },
   username: {
     fontFamily: 'LilitaOne_400Regular',
@@ -240,18 +246,13 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
-  restusername:{
-    fontFamily: 'LilitaOne_400Regular',
-    color: '#333',
-    fontSize: 20,
-    marginRight: 25,
-  },
   pointsContainer: {
     flexDirection: 'row',
   },
   starImage: {
     width: 20,
     height: 20,
+    marginLeft: 20
   },
   points: {
     color: 'white',
@@ -261,32 +262,65 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
-  restpoints:{
-    color: '#333',
-    fontSize: 18,
-    fontFamily: 'LilitaOne_400Regular',
-  },
   error: {
     color: 'red',
     fontSize: 18,
     textAlign: 'center',
     marginTop: 20,
   },
-  restContainer:{
-    justifyContent: 'center',
-    alignContent: 'center',
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    width: 300,
-    height: 60,
-    borderRadius: 10,
-    padding: 20,
-    margin: 10
+  column:{
+    flex: 1, // Make each column take equal space
+    marginHorizontal: 1, // Optional: space between columns
+    width: '5%', // Column takes 20% of the container's width
+    height: '100%',
   },
-  restUser:{
+  column1:{
+    width: '10%', // Column takes 20% of the container's width
+    height: '100%',
+  },
+  column2:{
+    width: '20%', // Column takes 20% of the container's width
+    height: '100%'
+  },
+  column3:{
     flexDirection: 'row',
+    width: '20%', // Column takes 20% of the container's width
+    height: '100%',
+    left: -40
+  },
+  restContainer: {
     justifyContent: 'center',
-    alignContent: 'center'
+    alignItems: 'center',
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    borderRadius: 20,
+    borderWidth: 2,
+    margin: 10,
+    padding: 10,
+  },
+  restUser: {
+    flexDirection: 'row', // 1 row layout
+    justifyContent: 'space-between', // Distribute columns evenly
+    alignItems: 'center', // Align items vertically at the center
+  },
+  restText: {
+    fontSize: 20,
+    fontFamily: 'LilitaOne_400Regular',
+  },
+  restprofileImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 1
+  },
+  restusername: {
+    marginLeft: 10,
+    fontSize: 18,
+    fontFamily: 'LilitaOne_400Regular',
+  },
+  restpoints:{
+    fontSize: 20,
+    fontFamily: 'LilitaOne_400Regular',
   }
 });
 
