@@ -26,30 +26,37 @@ const LoginScreen = ({ navigation }) => {
   }
   
   const handleLogin = async () => {
+    if (!isSelected) {
+      Alert.alert('Error', 'Please accept the Terms and Conditions to Login.');
+      return; // Stop execution if not checked
+    }
+  
+    // Validate email format
     const emailPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
     if (!emailPattern.test(email)) {
       Alert.alert('Error', 'Please enter a valid email');
-      return;
+      return; // Stop execution if email is invalid
     }
+  
+    // Validate password length
     if (password.length < 6) {
       Alert.alert('Error', 'Password must be at least 6 characters');
-      return;
+      return; // Stop execution if password is too short
     }
+  
     try {
+      // Attempt login
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      // Proceed with navigation as usual
+      console.log('User logged in:', userCredential.user);
     } catch (error) {
+      // Handle specific Firebase auth errors
       if (error.code === 'auth/invalid-email') {
         Alert.alert('Invalid Email', 'The email address is not valid.');
       } else if (error.code === 'auth/user-not-found') {
         Alert.alert('User Not Found', 'No user found with this email address.');
-      } else {                  
+      } else {
         Alert.alert('Login Error', error.message);
       }
-    }
-    if (!isSelected) {
-      Alert.alert('Error', 'Please accept the Terms and Conditions');
-      return;
     }
   };
   

@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
 import { Audio } from 'expo-av';
 import { AntDesign } from 'react-native-vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function App() {
     const [newWord, setNewWord] = useState("");
@@ -14,21 +15,46 @@ export default function App() {
     const [sound, setSound] = useState();
     const [data, setData] = useState(null);
     const [error, setError] = useState(null);
+    const [wordOfTheDay, setWordOfTheDay] = useState("");
+
+    // Fetch the Word of the Day by picking a random word
+    const fetchWordOfTheDay = async () => {
+        const randomWords = ["example", "innovation", "education", "progress", "technology"]; // Example list
+        const randomWord = randomWords[Math.floor(Math.random() * randomWords.length)];
+
+        setWordOfTheDay(randomWord);
+        await getWordInfo(randomWord); // Get the details of the random word
+    };
+
+    useEffect(() => {
+        const checkWordOfTheDay = async () => {
+            const storedWord = await AsyncStorage.getItem('wordOfTheDay');
+            const storedTimestamp = await AsyncStorage.getItem('wordTimestamp');
+            const currentTime = new Date().getTime();
+            
+            // If no word in storage or 24 hours have passed, fetch a new word
+            if (!storedWord || !storedTimestamp || currentTime - parseInt(storedTimestamp) > 86400000) {
+                fetchWordOfTheDay();
+                // Store the new word and timestamp in AsyncStorage
+                await AsyncStorage.setItem('wordOfTheDay', wordOfTheDay);
+                await AsyncStorage.setItem('wordTimestamp', currentTime.toString());
+            } else {
+                // If 24 hours haven't passed, display the stored word
+                setWordOfTheDay(storedWord);
+                await getWordInfo(storedWord); // Get the details of the stored word
+            }
+        };
+
+        checkWordOfTheDay();
+    }, [wordOfTheDay]);
 
     const searchWord = (enteredWord) => {
-        // Capitalize the first letter of the entered word
         const capitalizedWord = enteredWord.charAt(0).toUpperCase() + enteredWord.slice(1);
         setNewWord(capitalizedWord);
     };
 
-    const getInfo = async () => {
-        if (!newWord.trim()) {
-            setError("Please enter a word to search.");
-            setTimeout(() => setError(null), 3000);
-            return;
-        }
-
-        let url = `https://api.dictionaryapi.dev/api/v2/entries/en/${newWord.trim()}`;
+    const getWordInfo = async (word) => {
+        let url = `https://api.dictionaryapi.dev/api/v2/entries/en/${word.trim()}`;
 
         try {
             const response = await fetch(url);
@@ -89,58 +115,68 @@ export default function App() {
             await sound.unloadAsync();
         }
     };
+
     const [fontsLoaded] = useFonts({
         LilitaOne_400Regular,
-      });
-    
-      if (!fontsLoaded) {
+    });
+
+    if (!fontsLoaded) {
         return (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size={50} color="#ffffff" />
-          </View>
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size={50} color="#ffffff" />
+            </View>
         );
-      }
+    }
 
     return (
         <SafeAreaView style={styles.container}>
             {fontsLoaded ? (
-            <>
-            <Text style={styles.heading}>Dictionary</Text>
-            <View style={styles.inputContainer}>
-                <TextInput
-                    style={styles.input}
-                    placeholder="Search..."
-                    value={newWord}
-                    onChangeText={(text) => searchWord(text)}
-                />
-                <TouchableOpacity style={styles.button} onPress={() => getInfo()}>
-                    <Text style={styles.buttonText}>Search</Text>
-                </TouchableOpacity>
-            </View>
-            <TouchableOpacity style={styles.clearButton} onPress={() => clear()}>
-                <Text style={styles.clearButtonText}>Clear</Text>
-            </TouchableOpacity>
-            {error && <Text style={styles.errorText}>{error}</Text>}
-            {checkedWord && !error && (
-                <ScrollView 
-                    style={styles.resultsContainer} 
-                    contentContainerStyle={styles.scrollViewContent}
-                >
-                    <Text style={styles.word}>{checkedWord}</Text>
-                    <TouchableOpacity style={styles.playButton} onPress={() => playAudio()}>
-                        <AntDesign name="sound" size={20} color="#ffffff" />
-                    </TouchableOpacity>
-                    <View style={styles.resultTextContainer}>
-                        <Text style={styles.resultLabel}>Definition:</Text>
-                        <Text style={styles.resultText}>{definition}</Text>
-                        <Text style={styles.resultLabel}>Example:</Text>
-                        <Text style={styles.resultText}>{example}</Text>
+                <>
+                    <Text style={styles.heading}>Dictionary</Text>
+
+                    <View style={styles.inputContainer}>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Search..."
+                            value={newWord}
+                            onChangeText={(text) => searchWord(text)}
+                        />
+                        <TouchableOpacity style={styles.button} onPress={() => getWordInfo(newWord)}>
+                            <Text style={styles.buttonText}>Search</Text>
+                        </TouchableOpacity>
                     </View>
-                </ScrollView>
-            )}
-            </>
+
+                    <TouchableOpacity style={styles.clearButton} onPress={() => clear()}>
+                        <Text style={styles.clearButtonText}>Clear</Text>
+                    </TouchableOpacity>
+
+                    {error && <Text style={styles.errorText}>{error}</Text>}
+
+                    {checkedWord && !error && (
+                        <ScrollView
+                            style={styles.resultsContainer}
+                            contentContainerStyle={styles.scrollViewContent}
+                        >
+                            {!newWord && wordOfTheDay && (
+                                <View style={styles.wordOfTheDayContainer}>
+                                    <Text style={styles.wordOfTheDayText}>Word of the Day</Text>
+                                </View>
+                            )}
+                            <Text style={styles.word}>{checkedWord}</Text>
+                            <TouchableOpacity style={styles.playButton} onPress={() => playAudio()}>
+                                <AntDesign name="sound" size={20} color="#ffffff" />
+                            </TouchableOpacity>
+                            <View style={styles.resultTextContainer}>
+                                <Text style={styles.resultLabel}>Definition:</Text>
+                                <Text style={styles.resultText}>{definition}</Text>
+                                <Text style={styles.resultLabel}>Example:</Text>
+                                <Text style={styles.resultText}>{example}</Text>
+                            </View>
+                        </ScrollView>
+                    )}
+                </>
             ) : (
-            <ActivityIndicator size="24" color="#ffffff" />
+                <ActivityIndicator size="24" color="#ffffff" />
             )}
         </SafeAreaView>
     );
@@ -151,6 +187,18 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#F5F5F5',
         padding: 20,
+    },
+    wordOfTheDayContainer: {
+        backgroundColor: '#FFD700',
+        padding: 10,
+        marginBottom: 20,
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    wordOfTheDayText: {
+        fontSize: 20,
+        fontFamily: 'LilitaOne_400Regular',
+        color: '#333',
     },
     errorText: {
         color: 'red',
@@ -192,9 +240,6 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontFamily: 'LilitaOne_400Regular',
         fontSize: 18,
-        textShadowColor: 'black',  
-        textShadowOffset: { width: 2, height: 2 },  
-        textShadowRadius: 2,  
     },
     resultsContainer: {
         backgroundColor: '#FFF',
@@ -211,11 +256,6 @@ const styles = StyleSheet.create({
     },
     scrollViewContent: {
         alignItems: 'center',
-    },
-    wordContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 10,
     },
     word: {
         fontSize: 28,
@@ -254,14 +294,12 @@ const styles = StyleSheet.create({
         marginStart: '80%',
         backgroundColor: '#FF4A4A',
         borderRadius: 10,
-        padding: 5
+        padding: 5,
     },
     clearButtonText: {
         color: '#fff',
         fontFamily: 'LilitaOne_400Regular',
         fontSize: 15,
-        textShadowColor: 'black',  
-        textShadowOffset: { width: 1, height: 2 },  
-        textShadowRadius: 2,  
     },
 });
+
