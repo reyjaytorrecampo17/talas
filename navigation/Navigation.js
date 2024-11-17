@@ -168,9 +168,7 @@ const ProfileHeader = ({ userId }) => {
       {/* Profile Picture with Bounce Animation */}
       <View style={{flexDirection: 'column'}}>
       <View style={styles.profileImageContainer}>
-      <Animatable.Image
-        animation="bounceIn"
-        delay={500}
+      <Image
         source={profilePicture ? { uri: profilePicture } : require('../images/defaultImage.jpg')}
         style={styles.profileImage}
       />
@@ -381,12 +379,20 @@ const ProfileHeader = ({ userId }) => {
 };
 
 const Navigation = () => {
-  const auth = getAuth(); // Get the Firebase Auth instance
-  const currentUser = auth.currentUser; // Get the current user
+  const [initialRoute, setInitialRoute] = useState('Home'); // Default to 'Home'
+
+  useEffect(() => {
+    const auth = getAuth();
+    const currentUser = auth.currentUser;
+
+    if (currentUser) {
+      setInitialRoute('Profile'); // Change to 'Profile' if user is authenticated
+    }
+  }, []); // Empty dependency array ensures it runs only once
 
   return (
     <Tab.Navigator
-      initialRouteName="Home" // Ensure Home is the initial route
+      initialRouteName={initialRoute} // Dynamically set the initial route
       screenOptions={({ route }) => ({
         tabBarStyle: { backgroundColor: '#2c2964', position: 'absolute' },
         tabBarActiveTintColor: '#9146FF',
@@ -408,8 +414,8 @@ const Navigation = () => {
 
           return <AnimatedIcon source={iconSource} focused={focused} />;
         },
-        tabBarLabel: ({ focused }) => {
-          return focused ? (
+        tabBarLabel: ({ focused }) =>
+          focused ? (
             <Text
               style={{
                 fontFamily: 'LilitaOne_400Regular',
@@ -420,8 +426,7 @@ const Navigation = () => {
             >
               {route.name}
             </Text>
-          ) : null;
-        },
+          ) : null,
         tabBarItemStyle: {
           borderWidth: 1.5,
           borderColor: 'black',
@@ -436,9 +441,9 @@ const Navigation = () => {
         options={{
           headerLeft: false,
           headerShown: true,
-          header: () => <ProfileHeader userId={currentUser?.uid} />,
+          header: () => <ProfileHeader userId={getAuth().currentUser?.uid} />,
         }}
-        initialParams={{ userId: currentUser?.uid }}
+        initialParams={{ userId: getAuth().currentUser?.uid }}
       />
       <Tab.Screen
         name="Games"
@@ -446,7 +451,7 @@ const Navigation = () => {
         options={{
           headerLeft: false,
           headerShown: true,
-          header: () => <ProfileHeader userId={currentUser?.uid} />,
+          header: () => <ProfileHeader userId={getAuth().currentUser?.uid} />,
         }}
       />
       <Tab.Screen
@@ -455,7 +460,7 @@ const Navigation = () => {
         options={{
           headerLeft: false,
           headerShown: true,
-          header: () => <ProfileHeader userId={currentUser?.uid} />,
+          header: () => <ProfileHeader userId={getAuth().currentUser?.uid} />,
         }}
       />
       <Tab.Screen
@@ -472,7 +477,7 @@ const Navigation = () => {
         options={{
           headerLeft: false,
           headerShown: true,
-          header: () => <ProfileHeader userId={currentUser?.uid} />,
+          header: () => <ProfileHeader userId={getAuth().currentUser?.uid} />,
         }}
       />
     </Tab.Navigator>
