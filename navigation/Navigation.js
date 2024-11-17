@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator, Modal, TouchableWithoutFeedback  } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator, Modal, TouchableWithoutFeedback, Switch  } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { LinearGradient } from 'expo-linear-gradient'; // Linear Gradient
 import * as Animatable from 'react-native-animatable'; // Animations
@@ -22,6 +22,8 @@ import { doc, onSnapshot  } from 'firebase/firestore';
 import { useLevel } from '../context/LevelContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
+import { Audio } from 'expo-av';
+
 const Tab = createBottomTabNavigator();
 
 // Custom Animated Icon Component with Realistic Image Icons
@@ -62,8 +64,20 @@ const ProfileHeader = ({ userId }) => {
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [notificationsModalVisible, setNotificationsModalVisible] = useState(false);
   const [profilePicture, setProfilePicture] = useState(null);
+  const [isBackgroundMusicEnabled, setIsBackgroundMusicEnabled] = useState(true);
+  const [musicVolume, setMusicVolume] = useState(0.5);
+  const [sound, setSound] = useState();
 
-
+  const toggleBackgroundMusic = () => {
+    setIsBackgroundMusicEnabled(prevState => !prevState);
+  };
+  const handleVolumeChange = (volume) => {
+    setMusicVolume(volume);
+    if (sound) {
+      sound.setVolumeAsync(volume);
+    }
+  };
+  
   useEffect(() => {
     if (!userId) {
       console.error('No userId provided');
@@ -332,7 +346,11 @@ const ProfileHeader = ({ userId }) => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.SettingsmodalContainer}>
-            <Text style={styles.modalTitle}>Settings</Text>
+            <Image
+              source={require('../images/header.png')}
+              style={{width: 260, height: 60, left: -2, top: -2, borderRadius: 10}}
+            />
+            <Text style={styles.settingsmodalTitle}>Settings</Text>
             <Text style={styles.modalContent}>Here you can change your settings.</Text>
             <TouchableOpacity onPress={toggleSettingsModal} style={styles.closeButton}>
               <Text style={styles.closeButtonText}>Close</Text>
@@ -358,7 +376,6 @@ const ProfileHeader = ({ userId }) => {
           </View>
         </View>
       </Modal>
-
     </SafeAreaView>
   );
 };
@@ -366,13 +383,14 @@ const ProfileHeader = ({ userId }) => {
 const Navigation = () => {
   const auth = getAuth(); // Get the Firebase Auth instance
   const currentUser = auth.currentUser; // Get the current user
+
   return (
     <Tab.Navigator
-      initialRouteName="Profile"
+      initialRouteName="Home" // Ensure Home is the initial route
       screenOptions={({ route }) => ({
         tabBarStyle: { backgroundColor: '#2c2964', position: 'absolute' },
-        tabBarActiveTintColor: '#9146FF', // This controls the color when focused
-        tabBarInactiveTintColor: 'white', // This controls the color when not focused
+        tabBarActiveTintColor: '#9146FF',
+        tabBarInactiveTintColor: 'white',
         tabBarIcon: ({ focused }) => {
           let iconSource;
 
@@ -392,36 +410,43 @@ const Navigation = () => {
         },
         tabBarLabel: ({ focused }) => {
           return focused ? (
-            <Text style={{fontFamily: 'LilitaOne_400Regular', color: 'white', fontSize: 11, marginTop: 20 }}>{route.name}</Text>
+            <Text
+              style={{
+                fontFamily: 'LilitaOne_400Regular',
+                color: 'white',
+                fontSize: 10,
+                marginTop: 20,
+              }}
+            >
+              {route.name}
+            </Text>
           ) : null;
         },
         tabBarItemStyle: {
-          borderWidth: 1.5, // Add border to the left of each tab
-          borderColor: 'black', // Set the border color
-          paddingBottom: 5, // Adjust padding to make space for the border
-          paddingTop: 5, // Add top padding if needed
+          borderWidth: 1.5,
+          borderColor: 'black',
+          paddingBottom: 5,
+          paddingTop: 5,
         },
       })}
     >
-     <Tab.Screen
-      name="Leaderboards"
-      component={Leaderboards}
-      options={{
-        headerLeft: false,
-        headerShown: true,
-        header: () => <ProfileHeader userId={currentUser?.uid} />,
-      }}
-      initialParams={{ userId: currentUser?.uid }}
-    />
-
+      <Tab.Screen
+        name="Leaderboards"
+        component={Leaderboards}
+        options={{
+          headerLeft: false,
+          headerShown: true,
+          header: () => <ProfileHeader userId={currentUser?.uid} />,
+        }}
+        initialParams={{ userId: currentUser?.uid }}
+      />
       <Tab.Screen
         name="Games"
         component={Games}
         options={{
           headerLeft: false,
           headerShown: true,
-          header: () => <ProfileHeader userId={currentUser?.uid} />
-          , // Use the ProfileHeader here
+          header: () => <ProfileHeader userId={currentUser?.uid} />,
         }}
       />
       <Tab.Screen
@@ -430,7 +455,7 @@ const Navigation = () => {
         options={{
           headerLeft: false,
           headerShown: true,
-          header: () => <ProfileHeader userId={currentUser?.uid} />, // Use the ProfileHeader here
+          header: () => <ProfileHeader userId={currentUser?.uid} />,
         }}
       />
       <Tab.Screen
@@ -447,25 +472,24 @@ const Navigation = () => {
         options={{
           headerLeft: false,
           headerShown: true,
-          header: () => <ProfileHeader userId={currentUser?.uid} />
-          , // Use the ProfileHeader here
+          header: () => <ProfileHeader userId={currentUser?.uid} />,
         }}
       />
     </Tab.Navigator>
   );
 };
 
+
 // Styles for the ProfileHeader
 const styles = StyleSheet.create({
   container:{
-    backgroundColor: '#050313'
+    backgroundColor: '#050313',
   },
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 10,
-    paddingBottom: 60
-    
+    paddingBottom: 60,
   },
   profileImage: {
     width: 60,
@@ -526,7 +550,6 @@ const styles = StyleSheet.create({
   },
   progressBar:{
     borderRadius: 1,
-   
   },
   progressBarContainer:{
     top: -11,
@@ -564,7 +587,7 @@ const styles = StyleSheet.create({
     marginLeft: '95%',
     top: 35,
     position: 'absolute',
-    zIndex: 3
+    zIndex: 5, // Ensure the dropdown is above other elements
   },
   hamburger: {
     justifyContent: 'center',
@@ -587,7 +610,7 @@ const styles = StyleSheet.create({
   },
   dropdown: {
     position: 'absolute',
-    top: 20, // Adjust this value to position the dropdown below the hamburger
+    top: 20,
     left: -100,
     backgroundColor: '#fff',
     width: 120,
@@ -597,10 +620,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 5,
     elevation: 5,
+    zIndex: 1000, // Ensure the dropdown is above other elements
   },
   menuItem: {
-    paddingVertical: 15,
-    paddingHorizontal: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 5,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
@@ -665,17 +689,17 @@ modalButton:{
   fontSize: 20
 },
 SettingsmodalContainer:{
-    width: 300, // Modal width
-    padding: 20,
+    width: 250, // Modal width
     backgroundColor: 'white',
-    borderRadius: 10,
+    borderRadius: 5,
     alignItems: 'center',
+    alignSelf: 'center'
 },
 modalOverlay: {
   flex: 1,
   justifyContent: 'center',
   alignItems: 'center',
-  backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent overlay
+  backgroundColor: 'rgba(0, 0, 0, 0.8)', // Semi-transparent overlay
 },
 closeButtonText:{
     color: 'white',
@@ -702,6 +726,16 @@ closeButton:{
     backgroundColor: '#B57BFE',
     borderRadius: 10,
     alignItems: 'center',
+  },
+  settingsmodalTitle:{
+    color: 'white',
+    fontFamily: 'LilitaOne_400Regular',
+    fontSize: 25,
+    position: 'absolute',
+    marginTop: 10,
+    textShadowColor: 'black',  
+    textShadowOffset: { width: 1, height: 1 },  
+    textShadowRadius: 2, 
   }
 });
 

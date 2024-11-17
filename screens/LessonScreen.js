@@ -33,7 +33,9 @@ const LessonScreen = ({navigation}) => {
         </View>
       </View>
       </LinearGradient>
-      <TouchableOpacity style= {styles.unitOneContainer}>
+      <TouchableOpacity style= {styles.unitOneContainer} onPress={() => {
+              navigation.navigate('UnitScreen'); 
+            }}>
         <Text style={styles.unitText}>Unit 1</Text>
       </TouchableOpacity>
       <TouchableOpacity style= {styles.unitTwoContainer}>

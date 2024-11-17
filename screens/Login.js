@@ -43,7 +43,7 @@ const LoginScreen = ({ navigation }) => {
         Alert.alert('Invalid Email', 'The email address is not valid.');
       } else if (error.code === 'auth/user-not-found') {
         Alert.alert('User Not Found', 'No user found with this email address.');
-      } else {
+      } else {                  
         Alert.alert('Login Error', error.message);
       }
     }

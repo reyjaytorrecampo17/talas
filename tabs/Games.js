@@ -34,6 +34,19 @@ const Games = ({ navigation }) => {
           <Text style={styles.btnText}>Context Clues</Text>
         </LinearGradient>
       </TouchableOpacity>
+      <TouchableOpacity style={styles.btnQuiz} onPress={() => {
+              navigation.navigate('QuizScreen'); 
+            }}>
+        <LinearGradient colors={['#0000FF', '#1E90FF', '#87CEFA', '#4682B4']} style={styles.gradient}>
+
+          <Image
+            source={require('../images/compass.png')}
+            style={{ height: height* 0.15, width: width * 0.3, position: 'absolute', left: 10, top: -10, margin: 10}}
+          />
+          <Text style={styles.outlineText}>Story Adventure</Text>
+          <Text style={styles.btnText}>Story Adventure</Text>
+        </LinearGradient>
+      </TouchableOpacity>
       <TouchableOpacity style={styles.btnQuiz}>
         <LinearGradient colors={['#19F119', '#6BF36B', '#6BF36B', '#19F119']} style={styles.gradient}>
             
@@ -81,11 +94,13 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 1,
     color: 'white',
+    textAlign: "center",
     zIndex: 1,
   },
   btnText: {
     fontSize: 43,
     fontFamily: 'LilitaOne_400Regular',
+    textAlign: "center",
   },
   loadingContainer: {
     flex: 1,
