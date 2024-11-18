@@ -55,24 +55,25 @@ const QuizScreen = () => {
       .sort((a, b) => a.sort - b.sort)
       .map(({ value }) => value);
   };
+
     // Timer logic using useEffect
-    useEffect(() => {
-      if (!timerActive || timeLeft <= 0) return;
-    
-      const timer = setInterval(() => {
-        setTimeLeft((prevTime) => prevTime - 1);
-      }, 1000);
-    
-      // Clean up the interval when the component unmounts or timer stops
-      return () => clearInterval(timer);
-    }, [timerActive, timeLeft]);
-    
-    // Function to handle when the timer runs out
-    useEffect(() => {
-      if (timeLeft === 0) {
+   useEffect(() => {
+  if (!timerActive) return;
+
+  const timer = setInterval(() => {
+    setTimeLeft((prevTime) => {
+      if (prevTime <= 1) {
+        clearInterval(timer); // Stop timer at 0
         handleTimeOut();
+        return 0;
       }
-    }, [timeLeft]);
+      return prevTime - 1;
+    });
+  }, 1000);
+
+  return () => clearInterval(timer); // Cleanup
+}, [timerActive]);
+
     
     const handleTimeOut = () => {
       alert('Time is up!');
@@ -390,15 +391,15 @@ const QuizScreen = () => {
   const [lives, setLives] = useState(2); // Start with 3 lives
 
   const loseLife = () => {
-    if (lives > 1) {
-      setLives(lives - 1);
-    } else {
-      setLives(0);
-      setGameOverModalVisible(true); // Show the game over modal when no lives are left
-    }
+    setLives((prevLives) => {
+      if (prevLives > 1) {
+        return prevLives - 1;
+      } else {
+        setGameOverModalVisible(true);
+        return 0;
+      }
+    });
   };
-  
-  
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>

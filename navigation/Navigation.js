@@ -101,7 +101,6 @@ const ProfileHeader = ({ userId }) => {
           setProgress(userData.currentXP / userData.nextLevelXP || 0); // Calculate progress
           setProfilePicture(userData.profilePicture || '');
           setProfilePicture(userProfilePicture);
-          console.log('Profile Picture:', userProfilePicture);
           setLoading(false); 
         } else {
           console.log('No such user!');

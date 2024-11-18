@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, ActivityIndicator, AsyncStorage, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, Image, StyleSheet, ActivityIndicator, TouchableOpacity, Dimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient'; 
+import { LinearGradient } from 'expo-linear-gradient';
 import { useFonts } from 'expo-font';
 import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 
 const Home = () => {
   const [wordOfTheDay, setWordOfTheDay] = useState('');
+  const [definition, setDefinition] = useState('');
+  const [example, setExample] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigation = useNavigation();
@@ -17,47 +20,68 @@ const Home = () => {
     setLoading(true);
     setError('');
 
-    const url = 'https://api.dictionaryapi.dev/api/v2/entries/en/word'; // Replace with actual Word of the Day API
+    const apiKey = 'x4n1360hwgo4iu8gr0fdvt10dudaxz7n5ygfcv6zfg86g9zl0'; // Replace with your actual Wordnik API key
+    const url = `https://api.wordnik.com/v4/words.json/wordOfTheDay?api_key=${apiKey}`;
 
     try {
       const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
       const data = await response.json();
-      const word = data[0]?.word || 'No word found';
+      console.log("Word of the Day API Response:", data); // Log the API response
+
+      const word = data.word || 'No word found';
+      const definition = data.definitions ? data.definitions[0].text : 'No definition available.';
+      const example = data.examples ? data.examples[0].text : 'No example available.';
+
+      // Log the fetched data
+      console.log("Fetched Word:", word);
+      console.log("Fetched Definition:", definition);
+      console.log("Fetched Example:", example);
+
       setWordOfTheDay(word);
+      setDefinition(definition);
+      setExample(example);
 
+      // Store word and its data in AsyncStorage
       await AsyncStorage.setItem('wordOfTheDay', word);
-
-      const currentDate = new Date().toDateString();
-      await AsyncStorage.setItem('lastFetchDate', currentDate);
+      await AsyncStorage.setItem('definition', definition);
+      await AsyncStorage.setItem('example', example);
+      await AsyncStorage.setItem('lastFetchDate', new Date().toDateString()); // Store current date
 
       setLoading(false);
     } catch (error) {
-      setError('Failed to fetch Word of the Day. Please try again.');
+      console.error("Error fetching word of the day:", error);
+      setError('Failed to fetch Word of the Day. Please check your internet connection or try again later.');
       setLoading(false);
     }
   };
 
+  // Checks if we need to fetch a new word, or load from AsyncStorage
   useEffect(() => {
     const checkWordOfTheDay = async () => {
-      const savedDate = await AsyncStorage.getItem('lastFetchDate');
+      const lastFetchDate = await AsyncStorage.getItem('lastFetchDate');
       const currentDate = new Date().toDateString();
 
-      if (savedDate !== currentDate) {
-        fetchWordOfTheDay();
+      if (lastFetchDate !== currentDate) {
+        console.log("Fetching new word of the day...");
+        await fetchWordOfTheDay();
       } else {
         const savedWord = await AsyncStorage.getItem('wordOfTheDay');
-        setWordOfTheDay(savedWord);
+        const savedDefinition = await AsyncStorage.getItem('definition');
+        const savedExample = await AsyncStorage.getItem('example');
+        console.log("Loaded word from AsyncStorage:", savedWord);
+        console.log("Loaded definition from AsyncStorage:", savedDefinition);
+        console.log("Loaded example from AsyncStorage:", savedExample);
+        setWordOfTheDay(savedWord || 'No word found');
+        setDefinition(savedDefinition || 'No definition available.');
+        setExample(savedExample || 'No example available.');
         setLoading(false);
       }
     };
 
     checkWordOfTheDay();
-
-    const interval = setInterval(() => {
-      checkWordOfTheDay();
-    }, 86400000);
-
-    return () => clearInterval(interval);
   }, []);
 
   const handleRetry = () => {
@@ -83,7 +107,7 @@ const Home = () => {
       <Text style={styles.dictionaryTitle}>Word Of the Day</Text>
       <TouchableOpacity
         style={styles.dictionary}
-        onPress={() => navigation.navigate('Dictionary')}
+        onPress={() => navigation.navigate('Dictionary', { word: wordOfTheDay })}
       >
         <LinearGradient
           colors={['#11B7FC', '#00EEFF', '#00EEFF', '#11B7FC']}
@@ -92,17 +116,21 @@ const Home = () => {
           {loading ? (
             <ActivityIndicator size="large" color="#fff" />
           ) : (
-            <Text style={styles.textTitle}>{wordOfTheDay || 'No Word Found'}</Text>
+            <>
+              <Text style={styles.textTitle}>{wordOfTheDay || 'No Word Found'}</Text>
+              <Text style={styles.definitionText}>Definition: {definition}</Text>
+              <Text style={styles.exampleText}>Example: {example}</Text>
+            </>
           )}
         </LinearGradient>
         {error && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+            <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </TouchableOpacity>
 
       <Text style={styles.title}>Start your learning journey here!</Text>
@@ -123,7 +151,7 @@ const Home = () => {
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.BooksLessonCon}
-      onPress={() => navigation.navigate('TalasBooks')} 
+        onPress={() => navigation.navigate('TalasBooks')} 
       >
         <LinearGradient
           colors={['#FEE20E', '#FCD113', '#FCD113', '#F6BA06']}
@@ -216,6 +244,44 @@ const styles = StyleSheet.create({
     width: width * 0.3,
     position: 'absolute',
     left: width * -0.03,
+  },
+  errorContainer: {
+    marginTop: height * 0.02,
+    padding: 10,
+    backgroundColor: '#FF0000',
+    borderRadius: 5,
+  },
+  errorText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  retryButton: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: '#00FF00',
+    borderRadius: 5,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  definitionText: {
+    fontSize: 16,
+    color: '#fff',
+    marginTop: 10,
+  },
+  exampleText: {
+    fontSize: 14,
+    color: '#fff',
+    marginTop: 5,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#9747FF',
   },
 });
 

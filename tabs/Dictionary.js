@@ -7,46 +7,37 @@ import { useFonts } from 'expo-font';
 import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+const apiKey = 'x4n1360hwgo4iu8gr0fdvt10dudaxz7n5ygfcv6zfg86g9zl0'; // Replace with your actual API key
+
 export default function App() {
     const [newWord, setNewWord] = useState("");
     const [checkedWord, setCheckedWord] = useState("");
     const [definition, setDefinition] = useState("");
     const [example, setExample] = useState("");
     const [sound, setSound] = useState();
-    const [data, setData] = useState(null);
     const [error, setError] = useState(null);
     const [wordOfTheDay, setWordOfTheDay] = useState("");
 
-    // Fetch the Word of the Day by picking a random word
-    const fetchWordOfTheDay = async () => {
-        const randomWords = ["example", "innovation", "education", "progress", "technology"]; // Example list
-        const randomWord = randomWords[Math.floor(Math.random() * randomWords.length)];
-
-        setWordOfTheDay(randomWord);
-        await getWordInfo(randomWord); // Get the details of the random word
-    };
-
     useEffect(() => {
-        const checkWordOfTheDay = async () => {
-            const storedWord = await AsyncStorage.getItem('wordOfTheDay');
-            const storedTimestamp = await AsyncStorage.getItem('wordTimestamp');
-            const currentTime = new Date().getTime();
-            
-            // If no word in storage or 24 hours have passed, fetch a new word
-            if (!storedWord || !storedTimestamp || currentTime - parseInt(storedTimestamp) > 86400000) {
-                fetchWordOfTheDay();
-                // Store the new word and timestamp in AsyncStorage
-                await AsyncStorage.setItem('wordOfTheDay', wordOfTheDay);
-                await AsyncStorage.setItem('wordTimestamp', currentTime.toString());
-            } else {
-                // If 24 hours haven't passed, display the stored word
-                setWordOfTheDay(storedWord);
-                await getWordInfo(storedWord); // Get the details of the stored word
+        const fetchWordOfTheDay = async () => {
+            // Fetch Word of the Day from Wordnik
+            const wordOfTheDayURL = `https://api.wordnik.com/v4/words.json/wordOfTheDay?api_key=${apiKey}`;
+
+            try {
+                const response = await fetch(wordOfTheDayURL);
+                const wordData = await response.json();
+                const word = wordData.word;
+
+                setWordOfTheDay(word);
+                getWordInfo(word);  // Fetch additional data for the Word of the Day
+            } catch (error) {
+                console.error("Error fetching Word of the Day:", error);
+                setError("Failed to fetch Word of the Day");
             }
         };
 
-        checkWordOfTheDay();
-    }, [wordOfTheDay]);
+        fetchWordOfTheDay();
+    }, []);
 
     const searchWord = (enteredWord) => {
         const capitalizedWord = enteredWord.charAt(0).toUpperCase() + enteredWord.slice(1);
@@ -54,35 +45,27 @@ export default function App() {
     };
 
     const getWordInfo = async (word) => {
-        let url = `https://api.dictionaryapi.dev/api/v2/entries/en/${word.trim()}`;
+        const url = `https://api.wordnik.com/v4/word.json/${encodeURIComponent(word.trim())}/definitions?limit=1&includeRelated=false&includeTags=false&api_key=${apiKey}`;
+
 
         try {
             const response = await fetch(url);
-
-            if (!response.ok) {
-                setError("Word not found in the database");
-                setTimeout(() => setError(null), 3000);
-                return;
-            }
-
             const fetchedData = await response.json();
-            setData(fetchedData);
 
-            if (fetchedData.length > 0) {
+            if (fetchedData.length > 0 && fetchedData[0].text) {
                 const word = fetchedData[0].word;
-                const def = fetchedData[0].meanings[0].definitions[0].definition;
-                const eg = fetchedData[0].meanings[0].definitions[0].example || "No example available.";
+                const def = fetchedData[0].text;
+                const eg = fetchedData[0].exampleUses.length > 0 ? fetchedData[0].exampleUses[0].text : 'No example available.';
 
                 setCheckedWord(word);
                 setDefinition(def);
                 setExample(eg);
-                setError(null);
             } else {
-                setError("Word not found in the database");
+                setError("Word not found in the dictionary API.");
             }
         } catch (error) {
             console.error('Error fetching data:', error);
-            setError("An error occurred while fetching data");
+            setError("An error occurred while fetching data.");
         }
 
         setTimeout(() => {
@@ -91,17 +74,14 @@ export default function App() {
     };
 
     const playAudio = async () => {
-        if (data && data[0].phonetics && data[0].phonetics[0] && data[0].phonetics[0].audio) {
-            if (sound) {
-                await sound.unloadAsync();
-            }
-
-            const audioUri = data[0].phonetics[0].audio;
-            const { sound: newSound } = await Audio.Sound.createAsync({ uri: audioUri });
-
-            setSound(newSound);
-            await newSound.playAsync();
+        const audioUri = "YOUR_AUDIO_URI"; // Replace with your desired audio URI
+        if (sound) {
+            await sound.unloadAsync();
         }
+
+        const { sound: newSound } = await Audio.Sound.createAsync({ uri: audioUri });
+        setSound(newSound);
+        await newSound.playAsync();
     };
 
     const clear = async () => {
@@ -109,7 +89,7 @@ export default function App() {
         setDefinition("");
         setExample("");
         setNewWord("");
-        setData(null);
+        setSound(null);
 
         if (sound) {
             await sound.unloadAsync();
@@ -157,11 +137,6 @@ export default function App() {
                             style={styles.resultsContainer}
                             contentContainerStyle={styles.scrollViewContent}
                         >
-                            {!newWord && wordOfTheDay && (
-                                <View style={styles.wordOfTheDayContainer}>
-                                    <Text style={styles.wordOfTheDayText}>Word of the Day</Text>
-                                </View>
-                            )}
                             <Text style={styles.word}>{checkedWord}</Text>
                             <TouchableOpacity style={styles.playButton} onPress={() => playAudio()}>
                                 <AntDesign name="sound" size={20} color="#ffffff" />
@@ -187,18 +162,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: '#F5F5F5',
         padding: 20,
-    },
-    wordOfTheDayContainer: {
-        backgroundColor: '#FFD700',
-        padding: 10,
-        marginBottom: 20,
-        borderRadius: 10,
-        alignItems: 'center',
-    },
-    wordOfTheDayText: {
-        fontSize: 20,
-        fontFamily: 'LilitaOne_400Regular',
-        color: '#333',
     },
     errorText: {
         color: 'red',
@@ -258,48 +221,46 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     word: {
-        fontSize: 28,
+        fontSize: 26,
         fontFamily: 'LilitaOne_400Regular',
         color: '#333',
     },
     playButton: {
-        backgroundColor: '#2ecc71',
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginLeft: 10,
+        backgroundColor: '#007BFF',
+        padding: 10,
+        marginTop: 10,
+        borderRadius: 50,
+        alignSelf: 'center',
     },
     resultTextContainer: {
-        alignItems: 'flex-start',
-        paddingTop: 20,
-        width: '100%',
+        marginTop: 20,
     },
     resultLabel: {
-        fontSize: 20,
-        fontFamily: 'LilitaOne_400Regular',
-        color: '#555',
-        marginBottom: 5,
-    },
-    resultText: {
         fontSize: 18,
         fontFamily: 'LilitaOne_400Regular',
-        marginBottom: 15,
-        color: '#777',
-        lineHeight: 24,
-        textAlign: 'justify',
+        color: '#333',
+    },
+    resultText: {
+        fontSize: 16,
+        fontFamily: 'LilitaOne_400Regular',
+        color: '#555',
+        marginBottom: 10,
     },
     clearButton: {
-        marginStart: '80%',
-        backgroundColor: '#FF4A4A',
+        backgroundColor: '#FF6347',
+        padding: 10,
         borderRadius: 10,
-        padding: 5,
+        marginTop: 20,
     },
     clearButtonText: {
         color: '#fff',
         fontFamily: 'LilitaOne_400Regular',
-        fontSize: 15,
+        fontSize: 18,
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#F5F5F5',
     },
 });
-
