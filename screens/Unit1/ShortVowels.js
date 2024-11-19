@@ -12,7 +12,7 @@ import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase'; // Replace with your Firebase configuration
 import { getAuth } from 'firebase/auth';
 
-const Vocabulary = ({ route, navigation }) => {
+const ShortVowels = ({ route, navigation }) => {
   const { unit } = route.params || {}; // Get unit from route params
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -32,11 +32,11 @@ const Vocabulary = ({ route, navigation }) => {
 
     const fetchQuestions = async () => {
       try {
-        const vocabularyQuestionsRef = collection(db, 'units', unit, 'vocabularyQuestions');
-        const querySnapshot = await getDocs(vocabularyQuestionsRef);
+        const ShortVowelsQuestionsRef = collection(db, 'units', unit, 'ShortVowels');
+        const querySnapshot = await getDocs(ShortVowelsQuestionsRef);
 
         if (querySnapshot.empty) {
-          Alert.alert('No Questions', 'No vocabulary questions available for this unit.');
+          Alert.alert('No Questions', 'No main idea questions available for this unit.');
           setQuestions([]);
         } else {
           const fetchedQuestions = querySnapshot.docs.map((doc) => ({
@@ -69,7 +69,7 @@ const Vocabulary = ({ route, navigation }) => {
               setQuizCompleted(true); // Set quizCompleted flag to true
               Alert.alert('Congratulations!', 'You have completed all the questions.');
               // Update the user document with completion status
-              updateUserVocabularyStatus();
+              updateUserMainIdeaStatus();
               // Optionally, navigate to another screen or reset the quiz
               navigation.goBack(); // Example: go back to the previous screen
             }
@@ -82,15 +82,16 @@ const Vocabulary = ({ route, navigation }) => {
   };
 
   // Update the user's document with the completed quiz status
-  const updateUserVocabularyStatus = async () => {
+  const updateUserMainIdeaStatus = async () => {
     const user = auth.currentUser; // Get the current user
     if (user) {
       try {
         const userRef = doc(db, 'users', user.uid); // Reference to the user's document
         await updateDoc(userRef, {
-          vocabularyCompleted: true, // Update field with quiz completion status
+          mainIdeaCompleted: true, // Update field with quiz completion status
+          completedAt: new Date(),  // Optionally, include a timestamp for completion
         });
-        console.log('User vocabulary status updated');
+        console.log('User main idea status updated');
       } catch (error) {
         console.error('Error updating user status:', error);
         Alert.alert('Error', 'Failed to update user status. Please try again later.');
@@ -113,10 +114,10 @@ const Vocabulary = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Vocabulary - {unit}</Text>
+      <Text style={styles.title}>Short Vowels - {unit}</Text>
       {quizCompleted ? (
         <View style={styles.completedMessage}>
-          <Text style={styles.message}>You have completed the vocabulary quiz!</Text>
+          <Text style={styles.message}>You have completed the main idea quiz!</Text>
           <TouchableOpacity
             style={styles.optionButton}
             onPress={() => navigation.goBack()}
@@ -213,4 +214,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Vocabulary;
+export default ShortVowels;

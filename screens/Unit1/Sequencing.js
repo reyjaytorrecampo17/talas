@@ -12,9 +12,9 @@ import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase'; // Replace with your Firebase configuration
 import { getAuth } from 'firebase/auth';
 
-const Vocabulary = ({ route, navigation }) => {
+const Sequencing = ({ route, navigation }) => {
   const { unit } = route.params || {}; // Get unit from route params
-  const [questions, setQuestions] = useState([]);
+  const [questions, setQuestions] = useState([]); // Default to an empty array
   const [loading, setLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0); // Track current question
   const [quizCompleted, setQuizCompleted] = useState(false); // Flag for quiz completion
@@ -32,11 +32,11 @@ const Vocabulary = ({ route, navigation }) => {
 
     const fetchQuestions = async () => {
       try {
-        const vocabularyQuestionsRef = collection(db, 'units', unit, 'vocabularyQuestions');
-        const querySnapshot = await getDocs(vocabularyQuestionsRef);
+        const SequencingQuestionsRef = collection(db, 'units', unit, 'Sequencing');
+        const querySnapshot = await getDocs(SequencingQuestionsRef);
 
         if (querySnapshot.empty) {
-          Alert.alert('No Questions', 'No vocabulary questions available for this unit.');
+          Alert.alert('No Questions', 'No main idea questions available for this unit.');
           setQuestions([]);
         } else {
           const fetchedQuestions = querySnapshot.docs.map((doc) => ({
@@ -69,7 +69,7 @@ const Vocabulary = ({ route, navigation }) => {
               setQuizCompleted(true); // Set quizCompleted flag to true
               Alert.alert('Congratulations!', 'You have completed all the questions.');
               // Update the user document with completion status
-              updateUserVocabularyStatus();
+              updateUserMainIdeaStatus();
               // Optionally, navigate to another screen or reset the quiz
               navigation.goBack(); // Example: go back to the previous screen
             }
@@ -82,15 +82,15 @@ const Vocabulary = ({ route, navigation }) => {
   };
 
   // Update the user's document with the completed quiz status
-  const updateUserVocabularyStatus = async () => {
+  const updateUserMainIdeaStatus = async () => {
     const user = auth.currentUser; // Get the current user
     if (user) {
       try {
         const userRef = doc(db, 'users', user.uid); // Reference to the user's document
         await updateDoc(userRef, {
-          vocabularyCompleted: true, // Update field with quiz completion status
+          Sequencing: true, // Update field with quiz completion status
         });
-        console.log('User vocabulary status updated');
+        console.log('User main idea status updated');
       } catch (error) {
         console.error('Error updating user status:', error);
         Alert.alert('Error', 'Failed to update user status. Please try again later.');
@@ -113,10 +113,10 @@ const Vocabulary = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Vocabulary - {unit}</Text>
+      <Text style={styles.title}>Sequencing - {unit}</Text>
       {quizCompleted ? (
         <View style={styles.completedMessage}>
-          <Text style={styles.message}>You have completed the vocabulary quiz!</Text>
+          <Text style={styles.message}>You have completed the main idea quiz!</Text>
           <TouchableOpacity
             style={styles.optionButton}
             onPress={() => navigation.goBack()}
@@ -131,15 +131,19 @@ const Vocabulary = ({ route, navigation }) => {
               <Text style={styles.questionText}>
                 {`${currentQuestionIndex + 1}. ${currentQuestion.question}`}
               </Text>
-              {currentQuestion.options.map((option, idx) => (
-                <TouchableOpacity
-                  key={idx}
-                  style={styles.optionButton}
-                  onPress={() => handleOptionPress(option, idx, currentQuestion.correctOption)} // Pass the index
-                >
-                  <Text style={styles.optionText}>{option}</Text>
-                </TouchableOpacity>
-              ))}
+              {currentQuestion.options && Array.isArray(currentQuestion.options) && currentQuestion.options.length > 0 ? (
+                currentQuestion.options.map((option, idx) => (
+                  <TouchableOpacity
+                    key={idx}
+                    style={styles.optionButton}
+                    onPress={() => handleOptionPress(option, idx, currentQuestion.correctOption)} // Pass the index
+                  >
+                    <Text style={styles.optionText}>{option}</Text>
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <Text style={styles.noOptionsText}>No options available for this question.</Text>
+              )}
             </View>
           ) : (
             <Text style={styles.noQuestionsText}>No questions available for this unit.</Text>
@@ -200,6 +204,11 @@ const styles = StyleSheet.create({
     color: '#999',
     textAlign: 'center',
   },
+  noOptionsText: {
+    fontSize: 16,
+    color: '#999',
+    textAlign: 'center',
+  },
   message: {
     fontSize: 18,
     color: '#333',
@@ -213,4 +222,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Vocabulary;
+export default Sequencing;

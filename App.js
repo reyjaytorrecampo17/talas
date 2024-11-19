@@ -14,6 +14,9 @@ import LessonScreen from './screens/LessonScreen';
 import TalasBooks from './screens/TalasBooks';
 import UnitScreen from './screens/UnitScreen';
 import Vocabulary from './screens/Unit1/Vocabulary';
+import MainIdea from './screens/Unit1/MainIdea';
+import Sequencing from './screens/Unit1/Sequencing';
+import ShortVowels from './screens/Unit1/ShortVowels';
 import { LevelProvider } from './context/LevelContext';
 
 const Stack = createStackNavigator();
@@ -41,6 +44,9 @@ export default function App() {
             <Stack.Screen name="RegisterScreen" component={RegisterScreen} options={{ headerShown: false }} />
           </>
         )}
+        <Stack.Screen name="ShortVowels" component={ShortVowels} options={{ headerShown: false }}/>
+        <Stack.Screen name="Sequencing" component={Sequencing} options={{ headerShown: false }}/>
+        <Stack.Screen name="MainIdea" component={MainIdea} options={{ headerShown: false }}/>
         <Stack.Screen name="Shop" component={Shop} options={{ headerShown: false }}/>
         <Stack.Screen name="Lessons" component={LessonScreen} options={{ headerShown: false }}/>
         <Stack.Screen name="TalasBooks" component={TalasBooks} options={{ headerShown: false }}/>

@@ -71,9 +71,6 @@ const Home = () => {
         const savedWord = await AsyncStorage.getItem('wordOfTheDay');
         const savedDefinition = await AsyncStorage.getItem('definition');
         const savedExample = await AsyncStorage.getItem('example');
-        console.log("Loaded word from AsyncStorage:", savedWord);
-        console.log("Loaded definition from AsyncStorage:", savedDefinition);
-        console.log("Loaded example from AsyncStorage:", savedExample);
         setWordOfTheDay(savedWord || 'No word found');
         setDefinition(savedDefinition || 'No definition available.');
         setExample(savedExample || 'No example available.');
