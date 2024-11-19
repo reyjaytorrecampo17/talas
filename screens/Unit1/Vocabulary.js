@@ -1,53 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-} from 'react-native';
-import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../services/firebase'; // Replace with your Firebase configuration
-import { getAuth } from 'firebase/auth';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../../services/firebase';
 
 const Vocabulary = ({ route, navigation }) => {
-  const { unit } = route.params || {}; // Get unit from route params
+  const { unit } = route.params;
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0); // Track current question
-  const [quizCompleted, setQuizCompleted] = useState(false); // Flag for quiz completion
-  const auth = getAuth(); // Firebase Authentication to get the current user
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
   useEffect(() => {
-    if (!unit) {
-      Alert.alert(
-        'Error',
-        'Missing unit parameter. Returning to the previous screen.',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
-      return;
-    }
-
     const fetchQuestions = async () => {
       try {
-        const vocabularyQuestionsRef = collection(db, 'units', unit, 'vocabularyQuestions');
-        const querySnapshot = await getDocs(vocabularyQuestionsRef);
-
-        if (querySnapshot.empty) {
-          Alert.alert('No Questions', 'No vocabulary questions available for this unit.');
-          setQuestions([]);
+        const questionsRef = collection(db, 'units', `unit${unit}`, 'vocabularyQuestions');
+        const snapshot = await getDocs(questionsRef);
+        if (snapshot.empty) {
+          Alert.alert('No Questions', 'No questions found for this unit.');
         } else {
-          const fetchedQuestions = querySnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-          setQuestions(fetchedQuestions);
+          setQuestions(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
         }
       } catch (error) {
         console.error('Error fetching questions:', error);
-        Alert.alert('Error', 'Failed to load questions. Please try again later.');
+        Alert.alert('Error', 'Failed to load questions.');
       } finally {
         setLoading(false);
       }
@@ -56,47 +30,12 @@ const Vocabulary = ({ route, navigation }) => {
     fetchQuestions();
   }, [unit]);
 
-  const handleOptionPress = (selectedOption, selectedOptionIndex, correctOption) => {
-    if (selectedOptionIndex === correctOption) {
-      Alert.alert('Correct!', 'You selected the correct answer.', [
-        {
-          text: 'Next',
-          onPress: () => {
-            // Proceed to the next question
-            if (currentQuestionIndex + 1 < questions.length) {
-              setCurrentQuestionIndex(currentQuestionIndex + 1);
-            } else {
-              setQuizCompleted(true); // Set quizCompleted flag to true
-              Alert.alert('Congratulations!', 'You have completed all the questions.');
-              // Update the user document with completion status
-              updateUserVocabularyStatus();
-              // Optionally, navigate to another screen or reset the quiz
-              navigation.goBack(); // Example: go back to the previous screen
-            }
-          },
-        },
-      ]);
+  const handleNext = () => {
+    if (currentQuestionIndex + 1 < questions.length) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
-      Alert.alert('Incorrect!', 'Please try again.');
-    }
-  };
-
-  // Update the user's document with the completed quiz status
-  const updateUserVocabularyStatus = async () => {
-    const user = auth.currentUser; // Get the current user
-    if (user) {
-      try {
-        const userRef = doc(db, 'users', user.uid); // Reference to the user's document
-        await updateDoc(userRef, {
-          vocabularyCompleted: true, // Update field with quiz completion status
-        });
-        console.log('User vocabulary status updated');
-      } catch (error) {
-        console.error('Error updating user status:', error);
-        Alert.alert('Error', 'Failed to update user status. Please try again later.');
-      }
-    } else {
-      Alert.alert('Error', 'No user logged in.');
+      Alert.alert('Quiz Complete', 'You have completed this quiz!');
+      navigation.goBack();
     }
   };
 
@@ -108,109 +47,38 @@ const Vocabulary = ({ route, navigation }) => {
     );
   }
 
-  // Get the current question to display
-  const currentQuestion = questions[currentQuestionIndex];
+  if (!questions.length) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.noQuestionsText}>No questions available.</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Vocabulary - {unit}</Text>
-      {quizCompleted ? (
-        <View style={styles.completedMessage}>
-          <Text style={styles.message}>You have completed the vocabulary quiz!</Text>
-          <TouchableOpacity
-            style={styles.optionButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.optionText}>Go Back</Text>
+      <Text style={styles.title}>Unit {unit} Vocabulary</Text>
+      <View style={styles.questionContainer}>
+        <Text style={styles.questionText}>{questions[currentQuestionIndex].question}</Text>
+        {questions[currentQuestionIndex].options.map((option, index) => (
+          <TouchableOpacity key={index} style={styles.optionButton} onPress={handleNext}>
+            <Text style={styles.optionText}>{option}</Text>
           </TouchableOpacity>
-        </View>
-      ) : (
-        <ScrollView style={styles.content}>
-          {currentQuestion ? (
-            <View style={styles.questionContainer}>
-              <Text style={styles.questionText}>
-                {`${currentQuestionIndex + 1}. ${currentQuestion.question}`}
-              </Text>
-              {currentQuestion.options.map((option, idx) => (
-                <TouchableOpacity
-                  key={idx}
-                  style={styles.optionButton}
-                  onPress={() => handleOptionPress(option, idx, currentQuestion.correctOption)} // Pass the index
-                >
-                  <Text style={styles.optionText}>{option}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          ) : (
-            <Text style={styles.noQuestionsText}>No questions available for this unit.</Text>
-          )}
-        </ScrollView>
-      )}
+        ))}
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#F4F4F9',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 20,
-  },
-  content: {
-    marginTop: 10,
-  },
-  questionContainer: {
-    marginBottom: 20,
-    padding: 15,
-    backgroundColor: '#FFF',
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 5,
-  },
-  questionText: {
-    fontSize: 18,
-    color: '#333',
-    marginBottom: 10,
-  },
-  optionButton: {
-    backgroundColor: '#FFE135',
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  optionText: {
-    fontSize: 16,
-    color: '#000',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  noQuestionsText: {
-    fontSize: 18,
-    color: '#999',
-    textAlign: 'center',
-  },
-  message: {
-    fontSize: 18,
-    color: '#333',
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  completedMessage: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  container: { flex: 1, padding: 20, backgroundColor: '#f4f4f4' },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20 },
+  questionContainer: { marginBottom: 20 },
+  questionText: { fontSize: 18, marginBottom: 10 },
+  optionButton: { backgroundColor: '#add8e6', padding: 10, marginVertical: 5, borderRadius: 5 },
+  optionText: { fontSize: 16 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  noQuestionsText: { fontSize: 16, textAlign: 'center', color: '#888' },
 });
 
 export default Vocabulary;
