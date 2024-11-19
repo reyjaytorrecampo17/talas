@@ -88,8 +88,7 @@ const ShortVowels = ({ route, navigation }) => {
       try {
         const userRef = doc(db, 'users', user.uid); // Reference to the user's document
         await updateDoc(userRef, {
-          mainIdeaCompleted: true, // Update field with quiz completion status
-          completedAt: new Date(),  // Optionally, include a timestamp for completion
+          ShortVowelsCompleted: true, // Update field with quiz completion status
         });
         console.log('User main idea status updated');
       } catch (error) {
