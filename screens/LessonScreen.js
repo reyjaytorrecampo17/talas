@@ -3,15 +3,20 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
+  TouchableWithoutFeedback,
   ActivityIndicator,
+  Dimensions,
+  Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFonts } from 'expo-font';
 import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../services/firebase'; // Replace with your Firebase configuration
+import { db } from '../services/firebase';
 import { getAuth } from 'firebase/auth';
+import { Audio } from 'expo-av';
+
+const { width, height } = Dimensions.get('window');
 
 const LessonScreen = ({ navigation }) => {
   const [fontsLoaded] = useFonts({
@@ -20,8 +25,27 @@ const LessonScreen = ({ navigation }) => {
 
   const [statuses, setStatuses] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [scaleAnim] = useState(new Animated.Value(1)); // Scale animation for buttons
+  const [closeAnim] = useState(new Animated.Value(1)); // Scale animation for the close button
 
   const auth = getAuth();
+
+  // Load sound effect
+  const [sound, setSound] = useState();
+
+  async function playSound() {
+    const { sound } = await Audio.Sound.createAsync(require('../assets/sounds/clickmenu.wav'));
+    setSound(sound);
+    await sound.playAsync();
+  }
+
+  useEffect(() => {
+    return sound
+      ? () => {
+          sound.unloadAsync(); // Clean up sound
+        }
+      : undefined;
+  }, [sound]);
 
   useEffect(() => {
     const fetchStatuses = async () => {
@@ -74,14 +98,44 @@ const LessonScreen = ({ navigation }) => {
     !statuses.mainIdeaCompleted3 ||
     !statuses.vocabularyCompleted3;
 
+  const handlePressIn = (anim) => {
+    Animated.spring(anim, {
+      toValue: 0.95,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = (anim, callback) => {
+    Animated.spring(anim, {
+      toValue: 1,
+      useNativeDriver: true,
+    }).start();
+    playSound();
+    if (callback) callback();
+  };
+
   const renderUnitButton = (unit, isLocked, onPress) => (
-    <TouchableOpacity
-      style={[styles.unitContainer, isLocked && styles.lockedUnit]}
-      onPress={isLocked ? null : onPress}
+    <TouchableWithoutFeedback
+      onPressIn={() => handlePressIn(scaleAnim)}
+      onPressOut={() => handlePressOut(scaleAnim, isLocked ? null : onPress)}
+      disabled={isLocked} // Disable touch interaction if the unit is locked
     >
-      <Text style={styles.unitText}>{`Unit ${unit}`}</Text>
-      {isLocked && <Text style={styles.lockedText}>Locked</Text>}
-    </TouchableOpacity>
+      <Animated.View
+        style={[
+          styles.unitContainer,
+          isLocked ? styles.lockedUnit : styles.unlockedUnit,
+          { transform: [{ scale: scaleAnim }] },
+        ]}
+      >
+        <LinearGradient
+          colors={isLocked ? ['#8e8e8e', '#585858'] : ['#FF7E5F', '#FEB47B']}
+          style={styles.gradient}
+        >
+          <Text style={styles.unitText}>{`Unit ${unit}`}</Text>
+          {isLocked && <Text style={styles.lockedText}>Locked</Text>}
+        </LinearGradient>
+      </Animated.View>
+    </TouchableWithoutFeedback>
   );
 
   return (
@@ -91,11 +145,16 @@ const LessonScreen = ({ navigation }) => {
           <Text style={styles.title}>Lessons</Text>
         </View>
         <View style={styles.statsContainer}>
-          <View style={styles.xContainer}>
-            <TouchableOpacity style={styles.closeButton} onPress={() => navigation.goBack()}>
+          <TouchableWithoutFeedback
+            onPressIn={() => handlePressIn(closeAnim)}
+            onPressOut={() => handlePressOut(closeAnim, () => navigation.goBack())}
+          >
+            <Animated.View
+              style={[styles.closeButton, { transform: [{ scale: closeAnim }] }]}
+            >
               <Text style={styles.closeButtonText}>X</Text>
-            </TouchableOpacity>
-          </View>
+            </Animated.View>
+          </TouchableWithoutFeedback>
         </View>
       </LinearGradient>
       {renderUnitButton(1, false, () => navigation.navigate('UnitScreen', { unit: 1 }))}
@@ -110,7 +169,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
-    backgroundColor: '#9747FF',
+    backgroundColor: '#25276B',
   },
   header: {
     height: 130,
@@ -127,47 +186,50 @@ const styles = StyleSheet.create({
   },
   statsContainer: {
     flexDirection: 'row',
-    alignContent: 'center',
     justifyContent: 'center',
-    top: -30,
+    top: -60,
+    left: 120,
   },
   closeButton: {
     justifyContent: 'center',
     alignItems: 'center',
-    alignSelf: 'flex-end',
-    position: 'absolute',
-    left: 100,
-    zIndex: 10,
     backgroundColor: 'red',
     height: 30,
     width: 30,
-    borderWidth: 1,
   },
   closeButtonText: {
     fontSize: 20,
     fontFamily: 'LilitaOne_400Regular',
     color: '#FFF',
   },
-  xContainer: {
-    top: -35,
-    left: 20,
-  },
   unitContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
     width: '90%',
     height: '15%',
     margin: 10,
-    borderRadius: 10,
-    backgroundColor: '#ffe135',
+    borderRadius: 15,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+  },
+  gradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  unlockedUnit: {
+    borderWidth: 1,
+    borderColor: '#FFD700',
   },
   lockedUnit: {
-    backgroundColor: '#A9A9A9',
+    borderWidth: 1,
+    borderColor: '#8e8e8e',
   },
   unitText: {
-    color: 'white',
-    fontSize: 30,
+    fontSize: 24,
     fontFamily: 'LilitaOne_400Regular',
+    color: '#FFF',
   },
   lockedText: {
     fontSize: 16,
