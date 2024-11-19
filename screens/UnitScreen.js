@@ -3,10 +3,10 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 
-
 const UnitScreen = ({ navigation, route }) => {
   const { unit } = route.params;
 
+  // Define lessons with their respective ids and titles
   const lessons = [
     { id: 'ShortVowels', title: `Unit ${unit} - Short Vowels` },
     { id: 'Sequencing', title: `Unit ${unit} - Sequencing` },
@@ -24,12 +24,10 @@ const UnitScreen = ({ navigation, route }) => {
           <TouchableOpacity
             key={lesson.id}
             style={styles.lessonContainer}
-            onPress={() =>
-              navigation.navigate(lesson.id === 'Vocabulary' ? 'Vocabulary' : 'LessonDetail', {
-                unit,
-                lesson: lesson.id,
-              })
-            }
+            onPress={() => {
+              // Navigate to the correct screen based on the lesson id
+              navigation.navigate(lesson.id, { unit });
+            }}
           >
             <Text style={styles.lessonText}>{lesson.title}</Text>
           </TouchableOpacity>

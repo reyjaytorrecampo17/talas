@@ -1,23 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 
 const Vocabulary = ({ route, navigation }) => {
-  const { unit } = route.params;
+  const { unit, userId } = route.params;  // Assuming userId is passed as part of route params
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
+  // Fetch questions from Firestore
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
         const questionsRef = collection(db, 'units', `unit${unit}`, 'vocabularyQuestions');
         const snapshot = await getDocs(questionsRef);
+        
         if (snapshot.empty) {
           Alert.alert('No Questions', 'No questions found for this unit.');
         } else {
-          setQuestions(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+          const fetchedQuestions = snapshot.docs.map((doc) => {
+            const data = doc.data();
+           
+            return { id: doc.id, ...data };
+          });
+          setQuestions(fetchedQuestions);
         }
       } catch (error) {
         console.error('Error fetching questions:', error);
@@ -30,12 +37,43 @@ const Vocabulary = ({ route, navigation }) => {
     fetchQuestions();
   }, [unit]);
 
-  const handleNext = () => {
+  // Function to handle answer selection
+  const handleAnswerSelection = (selectedOptionIndex, correctOptionIndex) => {
+    if (selectedOptionIndex === correctOptionIndex) {
+      Alert.alert('Correct!', 'You selected the correct answer.', [
+        {
+          text: 'Next',
+          onPress: handleNext,
+        },
+      ]);
+    } else {
+      Alert.alert('Incorrect!', 'Please try again.');
+    }
+  };
+
+  // Move to the next question or show "Quiz Complete"
+  const handleNext = async () => {
     if (currentQuestionIndex + 1 < questions.length) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
+      // All questions have been answered, update completion status in Firestore
+      await updateTopicCompletion();
       Alert.alert('Quiz Complete', 'You have completed this quiz!');
-      navigation.goBack();
+      navigation.goBack();  // Navigate back after quiz completion
+    }
+  };
+
+  // Function to update the topic completion flag in Firestore (dynamically based on the unit number)
+  const updateTopicCompletion = async () => {
+    try {
+      const userRef = doc(db, 'users', userId); // Assuming users are stored in a 'users' collection
+      const fieldName = `vocabularyCompleted${unit}`; // Dynamically generate the field name based on unit number
+      await updateDoc(userRef, {
+        [fieldName]: true, // Set the dynamic field to true
+      });
+    } catch (error) {
+      console.error('Error updating user completion:', error);
+      Alert.alert('Error', 'Failed to update completion status.');
     }
   };
 
@@ -55,13 +93,19 @@ const Vocabulary = ({ route, navigation }) => {
     );
   }
 
+  const currentQuestion = questions[currentQuestionIndex];
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Unit {unit} Vocabulary</Text>
       <View style={styles.questionContainer}>
-        <Text style={styles.questionText}>{questions[currentQuestionIndex].question}</Text>
-        {questions[currentQuestionIndex].options.map((option, index) => (
-          <TouchableOpacity key={index} style={styles.optionButton} onPress={handleNext}>
+        <Text style={styles.questionText}>{currentQuestion.question}</Text>
+        {currentQuestion.options.map((option, index) => (
+          <TouchableOpacity
+            key={index}
+            style={styles.optionButton}
+            onPress={() => handleAnswerSelection(index, currentQuestion.correctOption)}  // Pass index to validate the correct answer
+          >
             <Text style={styles.optionText}>{option}</Text>
           </TouchableOpacity>
         ))}

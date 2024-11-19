@@ -1,53 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-} from 'react-native';
-import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../services/firebase'; // Replace with your Firebase configuration
-import { getAuth } from 'firebase/auth';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { db } from '../../services/firebase';
 
 const ShortVowels = ({ route, navigation }) => {
-  const { unit } = route.params || {}; // Get unit from route params
+  const { unit, userId } = route.params;  // Assuming userId is passed as part of route params
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0); // Track current question
-  const [quizCompleted, setQuizCompleted] = useState(false); // Flag for quiz completion
-  const auth = getAuth(); // Firebase Authentication to get the current user
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
+  // Fetch questions from Firestore
   useEffect(() => {
-    if (!unit) {
-      Alert.alert(
-        'Error',
-        'Missing unit parameter. Returning to the previous screen.',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
-      return;
-    }
-
     const fetchQuestions = async () => {
       try {
-        const ShortVowelsQuestionsRef = collection(db, 'units', unit, 'ShortVowels');
-        const querySnapshot = await getDocs(ShortVowelsQuestionsRef);
-
-        if (querySnapshot.empty) {
-          Alert.alert('No Questions', 'No main idea questions available for this unit.');
-          setQuestions([]);
+        const questionsRef = collection(db, 'units', `unit${unit}`, 'ShortVowels');
+        const snapshot = await getDocs(questionsRef);
+        if (snapshot.empty) {
+          Alert.alert('No Questions', 'No questions found for this unit.');
         } else {
-          const fetchedQuestions = querySnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-          setQuestions(fetchedQuestions);
+          setQuestions(snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
         }
       } catch (error) {
         console.error('Error fetching questions:', error);
-        Alert.alert('Error', 'Failed to load questions. Please try again later.');
+        Alert.alert('Error', 'Failed to load questions.');
       } finally {
         setLoading(false);
       }
@@ -56,24 +31,13 @@ const ShortVowels = ({ route, navigation }) => {
     fetchQuestions();
   }, [unit]);
 
-  const handleOptionPress = (selectedOption, selectedOptionIndex, correctOption) => {
-    if (selectedOptionIndex === correctOption) {
+  // Function to handle answer selection and validation
+  const handleAnswerSelection = async (selectedOptionIndex, correctOptionIndex) => {
+    if (selectedOptionIndex === correctOptionIndex) {
       Alert.alert('Correct!', 'You selected the correct answer.', [
         {
           text: 'Next',
-          onPress: () => {
-            // Proceed to the next question
-            if (currentQuestionIndex + 1 < questions.length) {
-              setCurrentQuestionIndex(currentQuestionIndex + 1);
-            } else {
-              setQuizCompleted(true); // Set quizCompleted flag to true
-              Alert.alert('Congratulations!', 'You have completed all the questions.');
-              // Update the user document with completion status
-              updateUserMainIdeaStatus();
-              // Optionally, navigate to another screen or reset the quiz
-              navigation.goBack(); // Example: go back to the previous screen
-            }
-          },
+          onPress: handleNext,
         },
       ]);
     } else {
@@ -81,22 +45,29 @@ const ShortVowels = ({ route, navigation }) => {
     }
   };
 
-  // Update the user's document with the completed quiz status
-  const updateUserMainIdeaStatus = async () => {
-    const user = auth.currentUser; // Get the current user
-    if (user) {
-      try {
-        const userRef = doc(db, 'users', user.uid); // Reference to the user's document
-        await updateDoc(userRef, {
-          ShortVowelsCompleted: true, // Update field with quiz completion status
-        });
-        console.log('User main idea status updated');
-      } catch (error) {
-        console.error('Error updating user status:', error);
-        Alert.alert('Error', 'Failed to update user status. Please try again later.');
-      }
+  // Move to the next question or show "Quiz Complete"
+  const handleNext = async () => {
+    if (currentQuestionIndex + 1 < questions.length) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
-      Alert.alert('Error', 'No user logged in.');
+      // All questions have been answered, update completion status in Firestore
+      await updateTopicCompletion();
+      Alert.alert('Quiz Complete', 'You have completed this quiz!');
+      navigation.goBack();  // Navigate back after quiz completion
+    }
+  };
+
+  // Function to update the topic completion flag in Firestore (dynamically based on the unit number)
+  const updateTopicCompletion = async () => {
+    try {
+      const userRef = doc(db, 'users', userId); // Assuming users are stored in a 'users' collection
+      const fieldName = `shortVowelsCompleted${unit}`; // Dynamically generate the field name based on unit number
+      await updateDoc(userRef, {
+        [fieldName]: true, // Set the dynamic field to true
+      });
+    } catch (error) {
+      console.error('Error updating user completion:', error);
+      Alert.alert('Error', 'Failed to update completion status.');
     }
   };
 
@@ -108,109 +79,44 @@ const ShortVowels = ({ route, navigation }) => {
     );
   }
 
-  // Get the current question to display
+  if (!questions.length) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.noQuestionsText}>No questions available.</Text>
+      </View>
+    );
+  }
+
   const currentQuestion = questions[currentQuestionIndex];
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Short Vowels - {unit}</Text>
-      {quizCompleted ? (
-        <View style={styles.completedMessage}>
-          <Text style={styles.message}>You have completed the main idea quiz!</Text>
+      <Text style={styles.title}>Unit {unit} Short Vowels</Text>
+      <View style={styles.questionContainer}>
+        <Text style={styles.questionText}>{currentQuestion.question}</Text>
+        {currentQuestion.options.map((option, index) => (
           <TouchableOpacity
+            key={index}
             style={styles.optionButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => handleAnswerSelection(index, currentQuestion.correctOption)}  // Compare the selected answer index with the correct answer index
           >
-            <Text style={styles.optionText}>Go Back</Text>
+            <Text style={styles.optionText}>{option}</Text>
           </TouchableOpacity>
-        </View>
-      ) : (
-        <ScrollView style={styles.content}>
-          {currentQuestion ? (
-            <View style={styles.questionContainer}>
-              <Text style={styles.questionText}>
-                {`${currentQuestionIndex + 1}. ${currentQuestion.question}`}
-              </Text>
-              {currentQuestion.options.map((option, idx) => (
-                <TouchableOpacity
-                  key={idx}
-                  style={styles.optionButton}
-                  onPress={() => handleOptionPress(option, idx, currentQuestion.correctOption)} // Pass the index
-                >
-                  <Text style={styles.optionText}>{option}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          ) : (
-            <Text style={styles.noQuestionsText}>No questions available for this unit.</Text>
-          )}
-        </ScrollView>
-      )}
+        ))}
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#F4F4F9',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 20,
-  },
-  content: {
-    marginTop: 10,
-  },
-  questionContainer: {
-    marginBottom: 20,
-    padding: 15,
-    backgroundColor: '#FFF',
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 5,
-  },
-  questionText: {
-    fontSize: 18,
-    color: '#333',
-    marginBottom: 10,
-  },
-  optionButton: {
-    backgroundColor: '#FFE135',
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  optionText: {
-    fontSize: 16,
-    color: '#000',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  noQuestionsText: {
-    fontSize: 18,
-    color: '#999',
-    textAlign: 'center',
-  },
-  message: {
-    fontSize: 18,
-    color: '#333',
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  completedMessage: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  container: { flex: 1, padding: 20, backgroundColor: '#f4f4f4' },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20 },
+  questionContainer: { marginBottom: 20 },
+  questionText: { fontSize: 18, marginBottom: 10 },
+  optionButton: { backgroundColor: '#add8e6', padding: 10, marginVertical: 5, borderRadius: 5 },
+  optionText: { fontSize: 16 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  noQuestionsText: { fontSize: 16, textAlign: 'center', color: '#888' },
 });
 
 export default ShortVowels;
