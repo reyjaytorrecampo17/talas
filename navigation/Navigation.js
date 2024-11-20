@@ -22,7 +22,7 @@ import { doc, onSnapshot  } from 'firebase/firestore';
 import { useLevel } from '../context/LevelContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
-import { Audio } from 'expo-av';
+import { playClickSound } from '../soundUtils'; // Import playClickSound
 
 const Tab = createBottomTabNavigator();
 
@@ -137,15 +137,18 @@ const ProfileHeader = ({ userId }) => {
   };
   const toggleSettingsModal = () => {
     setSettingsModalVisible(!settingsModalVisible);
+    playClickSound('clickmenu.wav'); // Play sound when Settings is pressed
   };
 
   const toggleNotificationsModal = () => {
     setNotificationsModalVisible(!notificationsModalVisible);
+    playClickSound('clickmenu.wav'); // Play sound when Notifications is pressed
   };
   const closeDropdown = () => setDropdownVisible(false);
   
    const toggleModal = () => {
     setIsModalVisible(!isModalVisible);
+    playClickSound('clickmenu.wav'); // Play sound when Logout is pressed
   };
 
   const handleLogout = async () => {
@@ -202,6 +205,7 @@ const ProfileHeader = ({ userId }) => {
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => {
+                playClickSound('clickmenu.wav'); // Play sound when Edit Profile is pressed
                 toggleDropdown();
                 navigation.navigate('ProfileScreen');
               }}
@@ -211,6 +215,7 @@ const ProfileHeader = ({ userId }) => {
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => {
+                playClickSound('clickmenu.wav'); // Play sound when Logout is pressed
                 toggleDropdown();
                 toggleModal();
               }}

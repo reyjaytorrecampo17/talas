@@ -54,11 +54,10 @@ const MainIdea = ({ route, navigation }) => {
     }
   };
 
-  // Function to update the topic completion flag in Firestore (dynamically based on the unit number)
   const updateTopicCompletion = async () => {
     try {
-      const userRef = doc(db, 'users', userId); // Assuming users are stored in a 'users' collection
-      const fieldName = `mainIdeaCompleted${unit}`; // Dynamically generate the field name based on unit number
+      const userRef = doc(db, 'users', userId);
+      const fieldName = `mainIdeaCompleted${unit}`;
       await updateDoc(userRef, {
         [fieldName]: true, // Set the dynamic field to true
       });
