@@ -132,7 +132,7 @@ const LessonScreen = ({ navigation }) => {
           colors={isLocked ? ['#8e8e8e', '#585858'] : ['#FF7E5F', '#FEB47B']}
           style={styles.gradient}
         >
-          {/* Ensure both text components are inside a single LinearGradient component */}
+          
           <View style={styles.unitTextWrapper}>
             <Text style={styles.unitText}>{`Unit ${unit}`}</Text>
             {isLocked && <Text style={styles.lockedText}>Locked</Text>}
@@ -148,7 +148,7 @@ const LessonScreen = ({ navigation }) => {
     <View style={styles.container}>
       <LinearGradient colors={['#050313', '#25276B']} style={styles.header}>
         <View style={styles.header}>
-          <Text style={styles.title}>Lessons</Text> {/* Wrapped in Text */}
+          <Text style={styles.title}>Lessons</Text>
         </View>
         <View style={styles.statsContainer}>
           <TouchableWithoutFeedback
@@ -158,7 +158,7 @@ const LessonScreen = ({ navigation }) => {
             <Animated.View
               style={[styles.closeButton, { transform: [{ scale: closeAnim }] }]}
             >
-              {/* The back arrow doesn't need any change */}
+           
               <Ionicons name="arrow-back" size={40} color="#FFF" /> 
             </Animated.View>
           </TouchableWithoutFeedback>
