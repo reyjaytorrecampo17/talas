@@ -15,6 +15,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { getAuth } from 'firebase/auth';
 import { Audio } from 'expo-av';
+import { Ionicons } from '@expo/vector-icons'; // Import Ionicons for back arrow
 
 const { width, height } = Dimensions.get('window');
 
@@ -131,18 +132,23 @@ const LessonScreen = ({ navigation }) => {
           colors={isLocked ? ['#8e8e8e', '#585858'] : ['#FF7E5F', '#FEB47B']}
           style={styles.gradient}
         >
-          <Text style={styles.unitText}>{`Unit ${unit}`}</Text>
-          {isLocked && <Text style={styles.lockedText}>Locked</Text>}
+          {/* Ensure both text components are inside a single LinearGradient component */}
+          <View style={styles.unitTextWrapper}>
+            <Text style={styles.unitText}>{`Unit ${unit}`}</Text>
+            {isLocked && <Text style={styles.lockedText}>Locked</Text>}
+          </View>
         </LinearGradient>
       </Animated.View>
     </TouchableWithoutFeedback>
   );
+  
+   
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#050313', '#18164C', '#25276B']} style={styles.header}>
+      <LinearGradient colors={['#050313', '#25276B']} style={styles.header}>
         <View style={styles.header}>
-          <Text style={styles.title}>Lessons</Text>
+          <Text style={styles.title}>Lessons</Text> {/* Wrapped in Text */}
         </View>
         <View style={styles.statsContainer}>
           <TouchableWithoutFeedback
@@ -152,7 +158,8 @@ const LessonScreen = ({ navigation }) => {
             <Animated.View
               style={[styles.closeButton, { transform: [{ scale: closeAnim }] }]}
             >
-              <Text style={styles.closeButtonText}>X</Text>
+              {/* The back arrow doesn't need any change */}
+              <Ionicons name="arrow-back" size={40} color="#FFF" /> 
             </Animated.View>
           </TouchableWithoutFeedback>
         </View>
@@ -175,6 +182,8 @@ const styles = StyleSheet.create({
     height: 130,
     width: '100%',
     justifyContent: 'center',
+    borderBottomLeftRadius: 10,
+    borderBottomRightRadius: 10,
   },
   title: {
     alignSelf: 'center',
@@ -185,27 +194,20 @@ const styles = StyleSheet.create({
     top: 20,
   },
   statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    top: -60,
-    left: 120,
+    position: 'absolute',
+    top: 40, // Adjust to position the back arrow correctly
+    left: 10,
   },
   closeButton: {
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'red',
-    height: 30,
-    width: 30,
-  },
-  closeButtonText: {
-    fontSize: 20,
-    fontFamily: 'LilitaOne_400Regular',
-    color: '#FFF',
+    height: 40,
+    width: 40,
   },
   unitContainer: {
     width: '90%',
     height: '15%',
-    margin: 10,
+    marginTop: 25,
     borderRadius: 15,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -230,6 +232,10 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontFamily: 'LilitaOne_400Regular',
     color: '#FFF',
+  },
+  unitTextWrapper: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   lockedText: {
     fontSize: 16,
