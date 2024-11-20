@@ -6,7 +6,7 @@ export const playClickSound = async () => {
   try {
     if (!sound) {
       const { sound: loadedSound } = await Audio.Sound.createAsync(
-        require('../assets/sounds/clickmenu.wav')
+        require('./assets/sounds/clickmenu.wav')
       );
       sound = loadedSound;
     }
