@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
-import { Audio } from 'expo-av';
 import { AntDesign } from 'react-native-vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { playClickSound } from '../soundUtils'; // Import the sound utility
 
 const apiKey = 'x4n1360hwgo4iu8gr0fdvt10dudaxz7n5ygfcv6zfg86g9zl0'; // Replace with your actual API key
 
@@ -14,13 +14,11 @@ export default function App() {
     const [checkedWord, setCheckedWord] = useState("");
     const [definition, setDefinition] = useState("");
     const [example, setExample] = useState("");
-    const [sound, setSound] = useState();
     const [error, setError] = useState(null);
     const [wordOfTheDay, setWordOfTheDay] = useState("");
 
     useEffect(() => {
         const fetchWordOfTheDay = async () => {
-            // Fetch Word of the Day from Wordnik
             const wordOfTheDayURL = `https://api.wordnik.com/v4/words.json/wordOfTheDay?api_key=${apiKey}`;
 
             try {
@@ -47,7 +45,6 @@ export default function App() {
     const getWordInfo = async (word) => {
         const url = `https://api.wordnik.com/v4/word.json/${encodeURIComponent(word.trim())}/definitions?limit=1&includeRelated=false&includeTags=false&api_key=${apiKey}`;
 
-
         try {
             const response = await fetch(url);
             const fetchedData = await response.json();
@@ -73,27 +70,11 @@ export default function App() {
         }, 3000);
     };
 
-    const playAudio = async () => {
-        const audioUri = "YOUR_AUDIO_URI"; // Replace with your desired audio URI
-        if (sound) {
-            await sound.unloadAsync();
-        }
-
-        const { sound: newSound } = await Audio.Sound.createAsync({ uri: audioUri });
-        setSound(newSound);
-        await newSound.playAsync();
-    };
-
     const clear = async () => {
         setCheckedWord("");
         setDefinition("");
         setExample("");
         setNewWord("");
-        setSound(null);
-
-        if (sound) {
-            await sound.unloadAsync();
-        }
     };
 
     const [fontsLoaded] = useFonts({
@@ -121,12 +102,12 @@ export default function App() {
                             value={newWord}
                             onChangeText={(text) => searchWord(text)}
                         />
-                        <TouchableOpacity style={styles.button} onPress={() => getWordInfo(newWord)}>
+                        <TouchableOpacity style={styles.button} onPress={() => { playClickSound(); getWordInfo(newWord); }}>
                             <Text style={styles.buttonText}>Search</Text>
                         </TouchableOpacity>
                     </View>
 
-                    <TouchableOpacity style={styles.clearButton} onPress={() => clear()}>
+                    <TouchableOpacity style={styles.clearButton} onPress={() => { playClickSound(); clear(); }}>
                         <Text style={styles.clearButtonText}>Clear</Text>
                     </TouchableOpacity>
 
@@ -138,7 +119,7 @@ export default function App() {
                             contentContainerStyle={styles.scrollViewContent}
                         >
                             <Text style={styles.word}>{checkedWord}</Text>
-                            <TouchableOpacity style={styles.playButton} onPress={() => playAudio()}>
+                            <TouchableOpacity style={styles.playButton} onPress={() => { playClickSound(); }}>
                                 <AntDesign name="sound" size={20} color="#ffffff" />
                             </TouchableOpacity>
                             <View style={styles.resultTextContainer}>
@@ -249,18 +230,17 @@ const styles = StyleSheet.create({
     clearButton: {
         backgroundColor: '#FF6347',
         padding: 10,
-        borderRadius: 10,
         marginTop: 20,
+        borderRadius: 10,
     },
     clearButtonText: {
-        color: '#fff',
-        fontFamily: 'LilitaOne_400Regular',
         fontSize: 18,
+        fontFamily: 'LilitaOne_400Regular',
+        color: '#ffffff',
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#F5F5F5',
     },
 });

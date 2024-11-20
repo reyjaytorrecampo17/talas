@@ -16,6 +16,7 @@ import { auth } from '../services/firebase'; // Adjust the import path if needed
 import Checkbox from 'expo-checkbox';
 import { useFonts } from 'expo-font';
 import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
+import { playClickSound } from '../soundUtils'; // Import the sound utility
 
 const { width, height } = Dimensions.get('window');
 
@@ -82,31 +83,53 @@ const LoginScreen = ({ navigation }) => {
           placeholder="Email"
           value={email}
           onChangeText={setEmail}
+          onFocus={async () => await playClickSound()} // Play sound when the field is focused
           keyboardType="email-address"
           autoCapitalize="none"
         />
+
         <TextInput
           style={styles.input}
           placeholder="Password"
           secureTextEntry={!isPasswordVisible}
           value={password}
           onChangeText={setPassword}
+          onFocus={async () => await playClickSound()} // Play sound when the field is focused
         />
+
         <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
         <View style={styles.checkboxContainer}>
-          <Checkbox value={isSelected} onValueChange={setSelection} style={styles.checkbox} />
+        <Checkbox
+          value={isSelected}
+          onValueChange={async (newValue) => {
+            await playClickSound(); // Play the click sound when the checkbox is toggled
+            setSelection(newValue); // Update the checkbox state
+          }}
+          style={styles.checkbox}
+        />
           <Text style={styles.label}>
             I have read and accept{' '}
             <Text style={styles.link}>Terms and Conditions</Text> and{' '}
             <Text style={styles.link}>Privacy Policy</Text>
           </Text>
         </View>
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+        <TouchableOpacity 
+          style={styles.loginButton} 
+          onPress={async () => { 
+            await playClickSound(); // Play the click sound
+            handleLogin(); // Trigger the login action
+          }}
+        >
           <Text style={styles.buttonText}>Login</Text>
         </TouchableOpacity>
-        <Text style={styles.registerLink} onPress={() => navigation.navigate('RegisterScreen')}>
+
+        <Text style={styles.registerLink} onPress={async () => { 
+          await playClickSound(); // Play the click sound
+          navigation.navigate('RegisterScreen'); // Navigate to the RegisterScreen
+        }}>
           Don't have an account? <Text style={styles.registerText}>Register Here</Text>
         </Text>
+
       </View>
     </ScrollView>
   );
@@ -129,8 +152,8 @@ const styles = StyleSheet.create({
     marginBottom: height * 0.05,
   },
   logo: {
-    width: width * 0.9,
-    height: height * 0.3,
+    width: width * 1.5,
+    height: height * 0.25,
   },
   input: {
     width: '100%',

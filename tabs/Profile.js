@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, Modal, Button, ScrollView } from 'react-native';
 import { useFonts } from 'expo-font';
 import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
+import { playClickSound, unloadSound } from '../soundUtils';  // Import the sound utility functions
 
 const Profile = () => {
   const [modalVisible, setModalVisible] = useState(false);
@@ -25,15 +26,24 @@ const Profile = () => {
   const handleCardPress = (card) => {
     setSelectedCard(card);
     setModalVisible(true);
+    playClickSound();  // Play sound on card press
   };
 
   const closeModal = () => {
+    playClickSound();  // Play sound on "Close" button press
     setModalVisible(false);
     setSelectedCard(null);
   };
+
   const [fontsLoaded] = useFonts({
     LilitaOne_400Regular,
   });
+
+  useEffect(() => {
+    return () => {
+      unloadSound(); // Clean up sound when the component is unmounted
+    };
+  }, []);
 
   if (!fontsLoaded) {
     return null; // Or a loading indicator

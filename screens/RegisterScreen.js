@@ -16,6 +16,7 @@ import { auth, db } from '../services/firebase'; // Updated to import db
 import { doc, setDoc } from 'firebase/firestore'; // Firestore methods
 import { useFonts } from 'expo-font';
 import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
+import { playClickSound } from '../soundUtils'; // Import the sound utility
 
 const { width, height } = Dimensions.get('window');
 
@@ -161,14 +162,28 @@ export default function RegisterScreen({ navigation }) {
         style={styles.input}
         secureTextEntry
       />
-      <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
+      <TouchableOpacity 
+        style={styles.registerButton} 
+        onPress={async () => {
+          await playClickSound(); // Play the click sound
+          handleRegister(); // Trigger the register action
+        }}
+      >
         <Text style={styles.buttonText}>Register</Text>
       </TouchableOpacity>
 
-      <Text style={styles.loginText} onPress={() => navigation.navigate('Login')}>
+
+      <Text 
+        style={styles.loginText} 
+        onPress={async () => { 
+          await playClickSound(); // Play the click sound
+          navigation.navigate('Login'); // Navigate to the Login screen
+        }}
+      >
         Already have an account?{' '}
         <Text style={styles.loginLink}>Login</Text>
       </Text>
+
     </View>
   );
 }
