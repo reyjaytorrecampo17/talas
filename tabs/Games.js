@@ -44,7 +44,7 @@ const Games = ({ navigation }) => {
         </LinearGradient>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.btnQuiz}>
+      <TouchableOpacity style={styles.btnQuiz} onPress={() => navigation.navigate('CrossWord')}>
         <LinearGradient colors={['#008C0E', '#6BF36B', '#6BF36B', '#008C0E']} style={styles.gradient}>
           <Image
             source={require('../images/crossword.png')}
