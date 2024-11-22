@@ -1,7 +1,5 @@
-// CrosswordGrid.js
-
-import React, { useState, useEffect } from 'react';
-import { View, TextInput, StyleSheet, Text, Button, Alert } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, TextInput, StyleSheet, Text, Button, Alert, Dimensions, LayoutAnimation } from 'react-native';
 
 let level = 0;
 
@@ -41,6 +39,7 @@ const generateAnswerGrid = (crosswordData) => {
 
 const CrosswordGrid = ({ crosswordData }) => {
     const [grid, setGrid] = useState(generateInitialGrid(crosswordData));
+    const inputRefs = useRef([]);
 
     useEffect(() => {
         setGrid(generateInitialGrid(crosswordData));
@@ -50,6 +49,25 @@ const CrosswordGrid = ({ crosswordData }) => {
         const newGrid = [...grid];
         newGrid[row][col] = text.toUpperCase();
         setGrid(newGrid);
+
+        // Focus on the next cell automatically
+        focusNextCell(row, col, text);
+    };
+
+    const focusNextCell = (row, col, text) => {
+        if (text && col < 7) {
+            // Move to the next cell in the current row
+            let nextCell = inputRefs.current[row][col + 1];
+            if (nextCell && nextCell.focus) {
+                nextCell.focus();
+            }
+        } else if (text && row < 6) {
+            // Move to the first cell of the next row if current row is filled
+            let nextCell = inputRefs.current[row + 1][0];
+            if (nextCell && nextCell.focus) {
+                nextCell.focus();
+            }
+        }
     };
 
     const handleGenerate = () => {
@@ -59,7 +77,16 @@ const CrosswordGrid = ({ crosswordData }) => {
 
     const handleVerify = () => {
         const answerGrid = generateAnswerGrid(crosswordData);
-        const isCorrect = JSON.stringify(grid) === JSON.stringify(answerGrid);
+        let isCorrect = true;
+        for (let y = 0; y < grid.length; y++) {
+            for (let x = 0; x < grid[0].length; x++) {
+                if (grid[y][x] !== answerGrid[y][x]) {
+                    isCorrect = false;
+                    break;
+                }
+            }
+            if (!isCorrect) break;
+        }
         Alert.alert(isCorrect ? 'Congratulations!' : 'Incorrect. Please try again.');
     };
 
@@ -68,6 +95,7 @@ const CrosswordGrid = ({ crosswordData }) => {
     };
 
     const handleSolve = () => {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         const answerGrid = generateAnswerGrid(crosswordData);
         setGrid(answerGrid);
     };
@@ -95,6 +123,12 @@ const CrosswordGrid = ({ crosswordData }) => {
                                 editable={cell !== 'X'}
                                 onChangeText={(text) => handleInputChange(rowIndex, colIndex, text)}
                                 maxLength={1}
+                                ref={(el) => {
+                                    if (!inputRefs.current[rowIndex]) {
+                                        inputRefs.current[rowIndex] = [];
+                                    }
+                                    inputRefs.current[rowIndex][colIndex] = el;
+                                }}
                             />
                         </View>
                     ))}
@@ -166,10 +200,10 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         margin: 1,
         borderColor: '#228B22',
-        width: 40, // Increased from 30 to 40
-        height: 40, // Increased from 30 to 40
+        width: Dimensions.get('window').width / 10, // Dynamic sizing
+        height: Dimensions.get('window').width / 10,
         textAlign: 'center',
-        fontSize: 15, // Increased font size for better visibility
+        fontSize: 13, // Proportional font size
     },
     staticCell: {
         borderColor: 'transparent',
@@ -207,6 +241,5 @@ const styles = StyleSheet.create({
         width: 10,
     },
 });
-
 
 export default CrosswordGrid;
