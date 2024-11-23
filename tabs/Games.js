@@ -3,13 +3,21 @@ import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Dim
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFonts } from 'expo-font';
 import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
+import { playClickSound, unloadSound } from '../soundUtils'; // Adjust the path as needed
 
 const { width, height } = Dimensions.get('window');
+
 const Games = ({ navigation }) => {
-  const [uid, setUid] = useState(null);
   const [fontsLoaded] = useFonts({
     LilitaOne_400Regular,
   });
+
+  useEffect(() => {
+    // Cleanup sound on component unmount
+    return () => {
+      unloadSound();
+    };
+  }, []);
 
   // Loading screen
   if (!fontsLoaded) {
@@ -22,33 +30,51 @@ const Games = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.btnQuiz} onPress={() => navigation.navigate('QuizScreen')}>
+      <TouchableOpacity
+        style={styles.btnQuiz}
+        onPress={async () => {
+          await playClickSound(); // Play click sound
+          navigation.navigate('QuizScreen'); // Navigate to QuizScreen
+        }}
+      >
         <LinearGradient colors={['#CD11FC', '#E26DFF', '#E26DFF', '#CD11FC']} style={styles.gradient}>
           <Image
             source={require('../images/magnifying.png')}
-            style={[styles.icon, { left: width * 0.1 }]}  // Adjusting icon position based on screen width
+            style={[styles.icon, { left: width * 0.1 }]}
           />
           <Text style={styles.outlineText}>Context Clues</Text>
           <Text style={styles.btnText}>Context Clues</Text>
         </LinearGradient>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.btnQuiz} onPress={() => navigation.navigate('QuizScreen')}>
+      <TouchableOpacity
+        style={styles.btnQuiz}
+        onPress={async () => {
+          await playClickSound(); // Play click sound
+          navigation.navigate('QuizScreen'); // Navigate to QuizScreen
+        }}
+      >
         <LinearGradient colors={['#0000FF', '#1E90FF', '#87CEFA', '#4682B4']} style={styles.gradient}>
           <Image
             source={require('../images/compass.png')}
-            style={[styles.icon, { top: height * 0.01, left: width * 0.08 }]}  // Adjusting icon position based on screen height and width
+            style={[styles.icon, { top: height * 0.01, left: width * 0.08 }]}
           />
           <Text style={styles.outlineText}>Story Adventure</Text>
           <Text style={styles.btnText}>Story Adventure</Text>
         </LinearGradient>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.btnQuiz} onPress={() => navigation.navigate('CrossWord')}>
+      <TouchableOpacity
+        style={styles.btnQuiz}
+        onPress={async () => {
+          await playClickSound(); // Play click sound
+          navigation.navigate('CrossWord'); // Navigate to QuizScreen
+        }}
+      >
         <LinearGradient colors={['#008C0E', '#6BF36B', '#6BF36B', '#008C0E']} style={styles.gradient}>
           <Image
             source={require('../images/crossword.png')}
-            style={[styles.icon, { top: height * 0.01, left: width * 0.08 }]}  // Adjusting icon position based on screen height and width
+            style={[styles.icon, { top: height * 0.01, left: width * 0.08 }]}
           />
           <Text style={styles.outlineText}>CrossWord</Text>
           <Text style={styles.btnText}>CrossWord</Text>
@@ -64,12 +90,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#9C59FE',
   },
-  title: {
-    fontSize: 24,
-    fontFamily: 'LilitaOne_400Regular',
-    color: 'white',
-    marginBottom: 20,
-  },
   btnQuiz: {
     width: width * 0.9,
     height: height * 0.2,
@@ -77,7 +97,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginBottom: 10,
     borderWidth: 1,
-    overflow: 'hidden',  // Ensures elements like images don't overflow outside the button area
+    overflow: 'hidden',
   },
   gradient: {
     flex: 1,
@@ -86,7 +106,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   outlineText: {
-    fontSize: width * 0.1, // Dynamic font size based on screen width
+    fontSize: width * 0.1,
     fontFamily: 'LilitaOne_400Regular',
     position: 'absolute',
     textShadowColor: 'black',
@@ -97,7 +117,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   btnText: {
-    fontSize: width * 0.097, // Dynamic font size based on screen width
+    fontSize: width * 0.097,
     height: height * 0.07,
     fontFamily: 'LilitaOne_400Regular',
     textAlign: 'center',

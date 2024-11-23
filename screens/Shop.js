@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient'; // Linear Gradient
 import { useFonts } from 'expo-font';
 import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
+import { playClickSound } from '../soundUtils'; // Import the sound utility
 
 const Shop = ({navigation}) => {
     const [fontsLoaded] = useFonts({
@@ -44,9 +45,16 @@ const Shop = ({navigation}) => {
         </View>
         <View style={styles.xContainer}>
           {/* X Button to go back */}
-          <TouchableOpacity style={styles.closeButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.closeButtonText}>X</Text>
-        </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.closeButton} 
+            onPress={async () => { 
+              await playClickSound(); // Play the click sound
+              navigation.goBack(); // Navigate back to the previous screen
+            }}
+          >
+            <Text style={styles.closeButtonText}>X</Text>
+          </TouchableOpacity>
+
         </View>
       </View>
       </LinearGradient>

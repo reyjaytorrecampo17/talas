@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFonts } from 'expo-font';
 import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { playClickSound, unloadSound } from '../soundUtils'; // Import the sound functions
 
 const { width, height } = Dimensions.get('window');
 
@@ -29,13 +30,12 @@ const Home = () => {
         throw new Error('Network response was not ok');
       }
       const data = await response.json();
-      console.log("Word of the Day API Response:", data); // Log the API response
+      console.log("Word of the Day API Response:", data);
 
       const word = data.word || 'No word found';
       const definition = data.definitions ? data.definitions[0].text : 'No definition available.';
       const example = data.examples ? data.examples[0].text : 'No example available.';
 
-      // Log the fetched data
       console.log("Fetched Word:", word);
       console.log("Fetched Definition:", definition);
       console.log("Fetched Example:", example);
@@ -44,11 +44,10 @@ const Home = () => {
       setDefinition(definition);
       setExample(example);
 
-      // Store word and its data in AsyncStorage
       await AsyncStorage.setItem('wordOfTheDay', word);
       await AsyncStorage.setItem('definition', definition);
       await AsyncStorage.setItem('example', example);
-      await AsyncStorage.setItem('lastFetchDate', new Date().toDateString()); // Store current date
+      await AsyncStorage.setItem('lastFetchDate', new Date().toDateString());
 
       setLoading(false);
     } catch (error) {
@@ -58,7 +57,6 @@ const Home = () => {
     }
   };
 
-  // Checks if we need to fetch a new word, or load from AsyncStorage
   useEffect(() => {
     const checkWordOfTheDay = async () => {
       const lastFetchDate = await AsyncStorage.getItem('lastFetchDate');
@@ -79,6 +77,9 @@ const Home = () => {
     };
 
     checkWordOfTheDay();
+    return () => {
+      unloadSound(); // Unload the sound when the component unmounts
+    };
   }, []);
 
   const handleRetry = () => {
@@ -104,7 +105,10 @@ const Home = () => {
       <Text style={styles.dictionaryTitle}>Word Of the Day</Text>
       <TouchableOpacity
         style={styles.dictionary}
-        onPress={() => navigation.navigate('Dictionary', { word: wordOfTheDay })}
+        onPress={() => {
+          playClickSound(); // Play the click sound when the button is pressed
+          navigation.navigate('Dictionary', { word: wordOfTheDay });
+        }}
       >
         <LinearGradient
           colors={['#11B7FC', '#00EEFF', '#00EEFF', '#11B7FC']}
@@ -133,7 +137,10 @@ const Home = () => {
       <Text style={styles.title}>Start your learning journey here!</Text>
       <TouchableOpacity 
         style={styles.BooksLessonCon}
-        onPress={() => navigation.navigate('Lessons')} 
+        onPress={() => {
+          playClickSound(); // Play the click sound when the button is pressed
+          navigation.navigate('Lessons');
+        }} 
       >
         <LinearGradient
           colors={['#02EB02', '#02E702', '#02DD02', '#01D201']}
@@ -148,7 +155,10 @@ const Home = () => {
       </TouchableOpacity>
 
       <TouchableOpacity style={styles.BooksLessonCon}
-        onPress={() => navigation.navigate('TalasBooks')} 
+        onPress={() => {
+          playClickSound(); // Play the click sound when the button is pressed
+          navigation.navigate('TalasBooks');
+        }} 
       >
         <LinearGradient
           colors={['#FEE20E', '#FCD113', '#FCD113', '#F6BA06']}

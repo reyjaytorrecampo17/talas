@@ -22,7 +22,7 @@ import { doc, onSnapshot  } from 'firebase/firestore';
 import { useLevel } from '../context/LevelContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
-import { Audio } from 'expo-av';
+import { playClickSound } from '../soundUtils'; // Import playClickSound
 
 const Tab = createBottomTabNavigator();
 
@@ -137,15 +137,18 @@ const ProfileHeader = ({ userId }) => {
   };
   const toggleSettingsModal = () => {
     setSettingsModalVisible(!settingsModalVisible);
+    playClickSound('clickmenu.wav'); // Play sound when Settings is pressed
   };
 
   const toggleNotificationsModal = () => {
     setNotificationsModalVisible(!notificationsModalVisible);
+    playClickSound('clickmenu.wav'); // Play sound when Notifications is pressed
   };
   const closeDropdown = () => setDropdownVisible(false);
   
    const toggleModal = () => {
     setIsModalVisible(!isModalVisible);
+    playClickSound('clickmenu.wav'); // Play sound when Logout is pressed
   };
 
   const handleLogout = async () => {
@@ -189,7 +192,16 @@ const ProfileHeader = ({ userId }) => {
         Keyboard.dismiss();
         return true; // Ensures touch is registered
       }}>
-        <TouchableOpacity onPress={toggleDropdown} style={styles.hamburger} accessibilityRole="button" accessible={true} accessibilityLabel="Menu">
+        <TouchableOpacity 
+          onPress={async () => { 
+            await playClickSound(); // Play the sound on press
+            toggleDropdown(); // Trigger your dropdown toggle function
+          }} 
+          style={styles.hamburger} 
+          accessibilityRole="button" 
+          accessible={true} 
+          accessibilityLabel="Menu"
+        >
           <Text style={styles.hamburgerText}>☰</Text>
         </TouchableOpacity>
         {dropdownVisible && (
@@ -202,6 +214,7 @@ const ProfileHeader = ({ userId }) => {
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => {
+                playClickSound('clickmenu.wav'); // Play sound when Edit Profile is pressed
                 toggleDropdown();
                 navigation.navigate('ProfileScreen');
               }}
@@ -211,6 +224,7 @@ const ProfileHeader = ({ userId }) => {
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => {
+                playClickSound('clickmenu.wav'); // Play sound when Logout is pressed
                 toggleDropdown();
                 toggleModal();
               }}
@@ -276,13 +290,17 @@ const ProfileHeader = ({ userId }) => {
         {/* Diamond Icon */}
         <TouchableOpacity 
           style={{zIndex: 2, left: 10, top: 20}}
-          onPress={() => navigation.navigate('Shop')}
+          onPress={async () => { 
+            await playClickSound(); // Play the sound on press
+            navigation.navigate('Shop'); // Navigate to the 'Shop' screen
+          }}
         >
           <Image
             source={require('../images/Plus.png')}
             style={{width: 20, height: 20}}
           />
         </TouchableOpacity>
+
         <Image 
           source={require('../images/Gem.png')}
           style={{width: 30, height: 35, zIndex: 1, right: 24}}
@@ -295,13 +313,17 @@ const ProfileHeader = ({ userId }) => {
         {/* Battery Icon */}
         <TouchableOpacity 
           style={{zIndex: 2, left: 10, top: 20}}
-          onPress={() => navigation.navigate('Shop')}
+          onPress={async () => { 
+            await playClickSound(); // Play the click sound
+            navigation.navigate('Shop'); // Navigate to the 'Shop' screen
+          }}
         >
           <Image
             source={require('../images/Plus.png')}
             style={{width: 20, height: 20}}
           />
         </TouchableOpacity>
+
         <Image 
           source={require('../images/battery.png')}
           style={{width: 30, height: 35, zIndex: 1, right: 24}}
@@ -432,6 +454,16 @@ const Navigation = () => {
           paddingBottom: 5,
           paddingTop: 5,
         },
+        tabBarButton: (props) => (
+          <TouchableWithoutFeedback
+            onPress={async () => {
+              await playClickSound(); // Play sound when a tab is clicked
+              props.onPress(); // Proceed with navigation
+            }}
+          >
+            <View {...props} />
+          </TouchableWithoutFeedback>
+        ),
       })}
     >
       <Tab.Screen

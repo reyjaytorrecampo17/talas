@@ -10,6 +10,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
+import { playClickSound } from '../soundUtils'; // Import the sound utility
 
 const { width, height } = Dimensions.get('window');
 
@@ -220,88 +221,123 @@ const ProfileScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <Image 
-        source={(require('../images/profileinfo.png'))}
-        style={{justifyContent: 'center', alignItems: 'center', width: width * 1, height: height * 0.1, }}
+        source={require('../images/profileinfo.png')}
+        style={{ justifyContent: 'center', alignItems: 'center', width: '110%', height: '10%' }}
       />
-      <View style={{flexDirection: 'row', zIndex: 2, position: 'absolute',}}>
-      </View>
       <View style={styles.profileImageContainer}>
         <Image
           source={imageUri}
           style={styles.profilePicture}
         />
       </View>
-      <TouchableOpacity style={styles.changePhotoButton} onPress={handleImageUpload} disabled={loadingUpload}>
+
+      <TouchableOpacity
+        style={styles.changePhotoButton} 
+        onPress={async () => { 
+          await playClickSound(); // Play the sound on press
+          handleImageUpload();
+        }} 
+        disabled={loadingUpload}
+      >
         <MaterialIcons name="camera-alt" size={20} color="#050313" />
         <Text style={styles.changePhotoText}>Change Photo</Text>
       </TouchableOpacity>
 
       <View style={styles.infoContainer}>
-      {loadingUpload && <ActivityIndicator size={50} color="#0000ff" />}
-      {userData && (
-        <>
-          {/* First Name */}
-          <View style={styles.fieldContainer}>
-          <Text style={styles.text}>First Name:</Text>
-            {editingFirstName ? (
-              <TextInput
-                style={styles.input}
-                placeholder="First Name"
-                value={updatedFirstName || userData.firstName}
-                onChangeText={setUpdatedFirstName}
-              />
-            ) : (
-              <Text style={styles.staticText}>{userData.firstName}</Text>
-            )}
-           <TouchableOpacity onPress={() => setEditingFirstName(true)}>
-              <MaterialIcons name="edit" size={24} color="#F2E30B" />
-            </TouchableOpacity>
-          </View>
-
-          {/* Last Name */}
-          <View style={styles.fieldContainer}>
-          <Text style={styles.text}>Last Name:</Text>
-            {editingLastName ? (
-              <TextInput
-                style={styles.input}
-                placeholder="Last Name"
-                value={updatedLastName || userData.lastName}
-                onChangeText={setUpdatedLastName}
-              />
-            ) : (
-              <Text style={styles.staticText}>{userData.lastName}</Text>
-            )}
-            <TouchableOpacity onPress={() => setEditingLastName(true)}>
+        {loadingUpload && <ActivityIndicator size={50} color="#0000ff" />}
+        {userData && (
+          <>
+            {/* First Name */}
+            <View style={styles.fieldContainer}>
+              <Text style={styles.text}>First Name:</Text>
+              {editingFirstName ? (
+                <TextInput
+                  style={styles.input}
+                  placeholder="First Name"
+                  value={updatedFirstName || userData.firstName}
+                  onChangeText={setUpdatedFirstName}
+                />
+              ) : (
+                <Text style={styles.staticText}>{userData.firstName}</Text>
+              )}
+              <TouchableOpacity 
+                onPress={async () => {
+                  await playClickSound(); // Play the sound on press
+                  setEditingFirstName(true);
+                }}
+              >
                 <MaterialIcons name="edit" size={24} color="#F2E30B" />
               </TouchableOpacity>
-          </View>
+            </View>
 
-          {/* In-Game Name */}
-          <View style={styles.fieldContainer}>
-          <Text style={styles.text}>In-Game Name:</Text>
-            {editingIgn ? (
-              <TextInput
-                style={styles.input}
-                placeholder="In-Game Name"
-                value={updatedIgn || userData.ign}
-                onChangeText={setUpdatedIgn}
-              />
-            ) : (
-              <Text style={styles.staticText}>{userData.ign}</Text>
-            )}
-           <TouchableOpacity onPress={() => setEditingIgn(true)}>
-              <MaterialIcons name="edit" size={24} color="#F2E30B" />
-            </TouchableOpacity>
-          </View>
-        </>
-      )}
-     <View style={styles.buttonsContainer}>
-          {/* Always show Save button */}
-          <TouchableOpacity style={styles.saveButton} onPress={handleSaveChanges}>
+            {/* Last Name */}
+            <View style={styles.fieldContainer}>
+              <Text style={styles.text}>Last Name:</Text>
+              {editingLastName ? (
+                <TextInput
+                  style={styles.input}
+                  placeholder="Last Name"
+                  value={updatedLastName || userData.lastName}
+                  onChangeText={setUpdatedLastName}
+                />
+              ) : (
+                <Text style={styles.staticText}>{userData.lastName}</Text>
+              )}
+              <TouchableOpacity 
+                onPress={async () => {
+                  await playClickSound(); // Play the sound on press
+                  setEditingLastName(true);
+                }}
+              >
+                <MaterialIcons name="edit" size={24} color="#F2E30B" />
+              </TouchableOpacity>
+            </View>
+
+            {/* In-Game Name */}
+            <View style={styles.fieldContainer}>
+              <Text style={styles.text}>In-Game Name:</Text>
+              {editingIgn ? (
+                <TextInput
+                  style={styles.input}
+                  placeholder="In-Game Name"
+                  value={updatedIgn || userData.ign}
+                  onChangeText={setUpdatedIgn}
+                />
+              ) : (
+                <Text style={styles.staticText}>{userData.ign}</Text>
+              )}
+              <TouchableOpacity 
+                onPress={async () => {
+                  await playClickSound(); // Play the sound on press
+                  setEditingIgn(true);
+                }}
+              >
+                <MaterialIcons name="edit" size={24} color="#F2E30B" />
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+
+        <View style={styles.buttonsContainer}>
+          {/* Save button */}
+          <TouchableOpacity
+            style={styles.saveButton}
+            onPress={async () => {
+              await playClickSound(); // Play the sound on press
+              handleSaveChanges();
+            }}
+          >
             <Text style={styles.saveButtonText}>Save</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.exitButton} onPress={handleExit}>
+          {/* Exit button */}
+          <TouchableOpacity
+            style={styles.exitButton}
+            onPress={async () => {
+              await playClickSound(); // Play the sound on press
+              handleExit();
+            }}
+          >
             <Text style={styles.exitButtonText}>Exit</Text>
           </TouchableOpacity>
         </View>
