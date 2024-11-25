@@ -5,7 +5,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFonts } from 'expo-font';
 import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { playClickSound, unloadSound } from '../soundUtils'; // Import the sound functions
+import { playClickSound, unloadSound } from '../soundUtils';  // Import the sound utility functions
+import LottieView from 'lottie-react-native'; // Import Lottie
 
 const { width, height } = Dimensions.get('window');
 
@@ -18,75 +19,77 @@ const Home = () => {
   const navigation = useNavigation();
 
   const fetchWordOfTheDay = async () => {
-    setLoading(true);
-    setError('');
-
-    const apiKey = 'x4n1360hwgo4iu8gr0fdvt10dudaxz7n5ygfcv6zfg86g9zl0'; // Replace with your actual Wordnik API key
-    const url = `https://api.wordnik.com/v4/words.json/wordOfTheDay?api_key=${apiKey}`;
-
     try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
+      // Fetch a random word
+      const randomWordResponse = await fetch('https://random-word-api.herokuapp.com/word');
+      const randomWordData = await randomWordResponse.json();
+      const selectedWord = randomWordData[0];
+
+      // Fetch the definition and example for the random word
+      const dictionaryResponse = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${selectedWord}`);
+      const dictionaryData = await dictionaryResponse.json();
+
+      if (dictionaryData.title === "No Definitions Found") {
+        setError('No word of the day found.');
+        setLoading(false);
+        return;
       }
-      const data = await response.json();
-      console.log("Word of the Day API Response:", data);
 
-      const word = data.word || 'No word found';
-      const definition = data.definitions ? data.definitions[0].text : 'No definition available.';
-      const example = data.examples ? data.examples[0].text : 'No example available.';
+      if (dictionaryData.length > 0) {
+        const wordData = {
+          word: dictionaryData[0].word,
+          definition: dictionaryData[0].meanings[0].definitions[0].definition,
+          example: dictionaryData[0].meanings[0].definitions[0].example || 'No example available.',
+          timestamp: new Date().getTime()
+        };
 
-      console.log("Fetched Word:", word);
-      console.log("Fetched Definition:", definition);
-      console.log("Fetched Example:", example);
-
-      setWordOfTheDay(word);
-      setDefinition(definition);
-      setExample(example);
-
-      await AsyncStorage.setItem('wordOfTheDay', word);
-      await AsyncStorage.setItem('definition', definition);
-      await AsyncStorage.setItem('example', example);
-      await AsyncStorage.setItem('lastFetchDate', new Date().toDateString());
-
-      setLoading(false);
+        await AsyncStorage.setItem('wordOfTheDay', JSON.stringify(wordData));
+        setWordOfTheDay(wordData.word);
+        setDefinition(wordData.definition);
+        setExample(wordData.example);
+        setError('');
+      } else {
+        setError('No word of the day found.');
+      }
     } catch (error) {
-      console.error("Error fetching word of the day:", error);
-      setError('Failed to fetch Word of the Day. Please check your internet connection or try again later.');
-      setLoading(false);
+      console.error('Error fetching word of the day:', error);
+      setError('An error occurred while fetching word of the day.');
     }
+    setLoading(false);
   };
 
   useEffect(() => {
-    const checkWordOfTheDay = async () => {
-      const lastFetchDate = await AsyncStorage.getItem('lastFetchDate');
-      const currentDate = new Date().toDateString();
+    return () => {
+      unloadSound(); // Clean up sound when the component is unmounted
+    };
+  }, []);
 
-      if (lastFetchDate !== currentDate) {
-        console.log("Fetching new word of the day...");
+  useEffect(() => {
+    const checkWordOfTheDay = async () => {
+      try {
+        const wordData = await AsyncStorage.getItem('wordOfTheDay');
+        if (wordData) {
+          const { word, definition, example, timestamp } = JSON.parse(wordData);
+          const currentTime = new Date().getTime();
+          const oneDay = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+          if (currentTime - timestamp < oneDay) {
+            setWordOfTheDay(word);
+            setDefinition(definition);
+            setExample(example);
+            setLoading(false);
+            return;
+          }
+        }
         await fetchWordOfTheDay();
-      } else {
-        const savedWord = await AsyncStorage.getItem('wordOfTheDay');
-        const savedDefinition = await AsyncStorage.getItem('definition');
-        const savedExample = await AsyncStorage.getItem('example');
-        setWordOfTheDay(savedWord || 'No word found');
-        setDefinition(savedDefinition || 'No definition available.');
-        setExample(savedExample || 'No example available.');
-        setLoading(false);
+      } catch (error) {
+        console.error('Error checking word of the day:', error);
+        await fetchWordOfTheDay();
       }
     };
 
     checkWordOfTheDay();
-    return () => {
-      unloadSound(); // Unload the sound when the component unmounts
-    };
   }, []);
-
-  const handleRetry = () => {
-    setLoading(true);
-    setError('');
-    fetchWordOfTheDay();
-  };
 
   const [fontsLoaded] = useFonts({
     LilitaOne_400Regular,
@@ -100,47 +103,49 @@ const Home = () => {
     );
   }
 
+  // Function to handle navigation and sound on click
+  const handleClick = async (screen, params = {}) => {
+    await playClickSound();  // Play sound on press
+    navigation.navigate(screen, params);  // Navigate to the specified screen
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.dictionaryTitle}>Word Of the Day</Text>
       <TouchableOpacity
         style={styles.dictionary}
-        onPress={() => {
-          playClickSound(); // Play the click sound when the button is pressed
-          navigation.navigate('Dictionary', { word: wordOfTheDay });
-        }}
+        onPress={() => handleClick('Dictionary', { word: wordOfTheDay })} // Pass parameters for navigation
       >
         <LinearGradient
-          colors={['#11B7FC', '#00EEFF', '#00EEFF', '#11B7FC']}
+          colors={['#0000FF', '#00EEFF', '#00EEFF', '#0000FF']}
           style={styles.WordContentContainer}
         >
           {loading ? (
-            <ActivityIndicator size="large" color="#fff" />
+            <ActivityIndicator size="large" color="#fff" /> 
+          ) : error ? (
+            <Text style={styles.errorText}>{error}</Text>
           ) : (
             <>
-              <Text style={styles.textTitle}>{wordOfTheDay || 'No Word Found'}</Text>
-              <Text style={styles.definitionText}>Definition: {definition}</Text>
-              <Text style={styles.exampleText}>Example: {example}</Text>
+            <View style={{flexDirection: 'row', justifyContent: 'center', alignItems: 'center'}}>
+               <LottieView 
+                source={require('../assets/book.json')} 
+                autoPlay 
+                loop 
+                style={styles.animation}
+              />
+              
+              <Text style={styles.textTitle}>{wordOfTheDay}</Text>
+            </View>
             </>
           )}
+
         </LinearGradient>
-        {error && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-              <Text style={styles.retryButtonText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
-        )}
       </TouchableOpacity>
 
       <Text style={styles.title}>Start your learning journey here!</Text>
       <TouchableOpacity 
         style={styles.BooksLessonCon}
-        onPress={() => {
-          playClickSound(); // Play the click sound when the button is pressed
-          navigation.navigate('Lessons');
-        }} 
+        onPress={() => handleClick('Lessons')}  // Call handleClick with the screen name
       >
         <LinearGradient
           colors={['#02EB02', '#02E702', '#02DD02', '#01D201']}
@@ -154,11 +159,9 @@ const Home = () => {
         </LinearGradient>
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.BooksLessonCon}
-        onPress={() => {
-          playClickSound(); // Play the click sound when the button is pressed
-          navigation.navigate('TalasBooks');
-        }} 
+      <TouchableOpacity
+        style={styles.BooksLessonCon}
+        onPress={() => handleClick('TalasBooks')}  // Call handleClick with the screen name
       >
         <LinearGradient
           colors={['#FEE20E', '#FCD113', '#FCD113', '#F6BA06']}
@@ -226,7 +229,8 @@ const styles = StyleSheet.create({
     fontFamily: 'LilitaOne_400Regular',
     fontSize: width * 0.05,
     color: 'white',
-    marginTop: height * 0.06,
+    marginTop: height * 0.04,
+    marginBottom: height * 0.03,
     textShadowColor: 'black',
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 2,
@@ -252,24 +256,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: width * -0.03,
   },
-  errorContainer: {
-    marginTop: height * 0.02,
-    padding: 10,
-    backgroundColor: '#FF0000',
-    borderRadius: 5,
-  },
   errorText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  retryButton: {
-    marginTop: 10,
-    padding: 10,
-    backgroundColor: '#00FF00',
-    borderRadius: 5,
-  },
-  retryButtonText: {
     color: '#fff',
     fontSize: 14,
     fontWeight: 'bold',
@@ -289,6 +276,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#9747FF',
+  },
+  animation: {
+    width: 180,
+    height: 180,
+    marginLeft: -50
   },
 });
 

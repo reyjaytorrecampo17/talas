@@ -23,6 +23,7 @@ import { useLevel } from '../context/LevelContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 import { playClickSound } from '../soundUtils'; // Import playClickSound
+import Settings from '../screens/Settings';
 
 const Tab = createBottomTabNavigator();
 
@@ -160,14 +161,16 @@ const ProfileHeader = ({ userId }) => {
 
   const DismissKeyboard = ({ children }) => (
     <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()} accessible={false}>
-      <View style={{ flex: 1 }}>{children}</View>
+      <View style={{ flex: 1 }}>
+        {children}
+      </View>
     </TouchableWithoutFeedback>
   );
 
   return (
+    <TouchableWithoutFeedback onPress={closeDropdown}>
     <SafeAreaView style={styles.container}>
     <LinearGradient colors={['#050313', '#18164C', '#25276B']} style={styles.headerContainer}>
-      {/* Profile Picture with Bounce Animation */}
       <View style={{flexDirection: 'column'}}>
       <View style={styles.profileImageContainer}>
       <Image
@@ -186,12 +189,7 @@ const ProfileHeader = ({ userId }) => {
         </View>
       </View>
       </View>
-      <TouchableWithoutFeedback onPress={closeDropdown}>
-      <View pointerEvents="box-none" style={styles.DropdownContainer} onStartShouldSetResponder={() => {
-        if (dropdownVisible) setDropdownVisible(false);
-        Keyboard.dismiss();
-        return true; // Ensures touch is registered
-      }}>
+      <View style={styles.DropdownContainer}>
         <TouchableOpacity 
           onPress={async () => { 
             await playClickSound(); // Play the sound on press
@@ -209,6 +207,7 @@ const ProfileHeader = ({ userId }) => {
             <TouchableOpacity onPress={toggleSettingsModal} style={styles.menuItem}>
               <Text style={styles.menuText}>Settings</Text>
             </TouchableOpacity>
+             <Settings visible={settingsModalVisible} onClose={toggleSettingsModal} />
             <TouchableOpacity onPress={toggleNotificationsModal} style={styles.menuItem}>
               <Text style={styles.menuText}>Notifications</Text>
             </TouchableOpacity>
@@ -235,7 +234,6 @@ const ProfileHeader = ({ userId }) => {
           </View>
         )}
       </View>
-    </TouchableWithoutFeedback>
       <View style={{flexDirection: 'column'}}>
       <LinearGradient
           colors={['#003343', '#003343']} // Specify your gradient colors here
@@ -356,27 +354,6 @@ const ProfileHeader = ({ userId }) => {
                     </View>
                 </View>
             </Modal>
-            {/* Settings Modal */}
-      <Modal
-        visible={settingsModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={toggleSettingsModal}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.SettingsmodalContainer}>
-            <Image
-              source={require('../images/header.png')}
-              style={{width: 260, height: 60, left: -2, top: -2, borderRadius: 10}}
-            />
-            <Text style={styles.settingsmodalTitle}>Settings</Text>
-            <Text style={styles.modalContent}>Here you can change your settings.</Text>
-            <TouchableOpacity onPress={toggleSettingsModal} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
 
       {/* Notifications Modal */}
       <Modal
@@ -396,6 +373,7 @@ const ProfileHeader = ({ userId }) => {
         </View>
       </Modal>
     </SafeAreaView>
+    </TouchableWithoutFeedback>
   );
 };
 
@@ -424,7 +402,7 @@ const Navigation = () => {
           if (route.name === 'Leaderboards') {
             iconSource = require('../images/navicon/podium.png');
           } else if (route.name === 'Games') {
-            iconSource = require('../images/navicon/joystick.png');
+            iconSource = require('../images/navicon/playing.png');
           } else if (route.name === 'Home') {
             iconSource = require('../images/navicon/home.png');
           } else if (route.name === 'Dictionary') {
@@ -640,14 +618,14 @@ const styles = StyleSheet.create({
   },
   hamburgerText: {
     alignSelf: 'center',
-    fontSize: 25,
+    fontSize: 20,
     color: '#fff',
     top: -5,
   },
   dropdown: {
     position: 'absolute',
     top: -18,
-    left: -150,
+    left: -90,
     backgroundColor: '#fff',
     width: 120,
     height: 150,

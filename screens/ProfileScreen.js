@@ -295,7 +295,7 @@ const ProfileScreen = () => {
 
             {/* In-Game Name */}
             <View style={styles.fieldContainer}>
-              <Text style={styles.text}>In-Game Name:</Text>
+              <Text style={styles.text}>IGN:</Text>
               {editingIgn ? (
                 <TextInput
                   style={styles.input}

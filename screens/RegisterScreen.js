@@ -5,17 +5,20 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
+  Modal,
+  TouchableWithoutFeedback,
+  ActivityIndicator,
   Image,
   Dimensions,
-  Platform,
-  ActivityIndicator,
+  Animated,
+  Easing,
 } from 'react-native';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth, db } from '../services/firebase'; // Updated to import db
-import { doc, setDoc } from 'firebase/firestore'; // Firestore methods
+import { auth, db } from '../services/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 import { useFonts } from 'expo-font';
 import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
+import { playClickSound } from '../soundUtils'; // Import the playClickSound function
 
 const { width, height } = Dimensions.get('window');
 
@@ -26,7 +29,8 @@ export default function RegisterScreen({ navigation }) {
   const [lastName, setLastName] = useState('');
   const [age, setAge] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [modalMessage, setModalMessage] = useState('');
   const [fontsLoaded] = useFonts({
     LilitaOne_400Regular,
   });
@@ -39,43 +43,30 @@ export default function RegisterScreen({ navigation }) {
     );
   }
 
-  const generateIGN = (firstName) => {
-    const randomNumber = Math.floor(1000 + Math.random() * 9000); // 4-digit random number
-    return `${firstName}_${randomNumber}`;
-  };
-
-  const calculateNextLevelXP = (currentLevel) => {
-    return 100 + currentLevel * 50;
-  };
-
   const handleRegister = async () => {
+    await playClickSound(); // Play click sound on register button press
+
     if (!email || !password) {
-      Alert.alert('Error', 'Please enter both email and password');
+      setModalMessage('Please enter both email and password');
+      setModalVisible(true);
       return;
     }
     if (password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters long');
+      setModalMessage('Password must be at least 6 characters long');
+      setModalVisible(true);
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match.');
+      setModalMessage('Passwords do not match.');
+      setModalVisible(true);
       return;
     }
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      const generatedIGN = generateIGN(firstName);
 
-      const difficultyLevels = {
-        easy: { pretestCompleted: false },
-        medium: { pretestCompleted: false },
-        hard: { pretestCompleted: false },
-      };
-
-      const initialLevel = 1;
-      const initialXP = 0;
-      const initialNextLevelXP = calculateNextLevelXP(initialLevel);
+      const generatedIGN = `${firstName}_${Math.floor(1000 + Math.random() * 9000)}`;
 
       await setDoc(doc(db, 'users', user.uid), {
         email: user.email,
@@ -83,13 +74,14 @@ export default function RegisterScreen({ navigation }) {
         lastName,
         age: parseInt(age),
         ign: generatedIGN,
-        level: initialLevel,
-        difficultyLevels,
-        currentXP: initialXP,
-        nextLevelXP: initialNextLevelXP,
+        level: 1,
+        difficultyLevels: { easy: { pretestCompleted: false }, medium: { pretestCompleted: false }, hard: { pretestCompleted: false } },
+        currentXP: 0,
+        nextLevelXP: 150,
       });
 
-      Alert.alert('Success', 'Registration successful! Enjoy your journey here in TALAS!');
+      setModalMessage('Registration successful! Welcome to TALAS!');
+      setModalVisible(true);
 
       navigation.reset({
         index: 0,
@@ -111,8 +103,29 @@ export default function RegisterScreen({ navigation }) {
         default:
           errorMessage = error.message;
       }
-      Alert.alert('Registration Error', errorMessage);
+      setModalMessage(errorMessage);
+      setModalVisible(true);
     }
+  };
+
+  const [buttonScale] = useState(new Animated.Value(1)); // Scale state for animation
+
+  const handlePressIn = () => {
+    Animated.timing(buttonScale, {
+      toValue: 1.1, // Scale up slightly
+      duration: 100,
+      easing: Easing.ease,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.timing(buttonScale, {
+      toValue: 1, // Reset to original size
+      duration: 100,
+      easing: Easing.ease,
+      useNativeDriver: true,
+    }).start();
   };
 
   return (
@@ -161,14 +174,59 @@ export default function RegisterScreen({ navigation }) {
         style={styles.input}
         secureTextEntry
       />
-      <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
-        <Text style={styles.buttonText}>Register</Text>
-      </TouchableOpacity>
+      <Animated.View
+        style={[
+          styles.registerButtonWrapper,
+          {
+            transform: [{ scale: buttonScale }],
+          },
+        ]}
+      >
+        <TouchableOpacity
+          style={styles.registerButton}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          onPress={handleRegister}
+        >
+          <Text style={styles.buttonText}>Register</Text>
+        </TouchableOpacity>
+      </Animated.View>
 
-      <Text style={styles.loginText} onPress={() => navigation.navigate('Login')}>
+      <Text
+        style={styles.loginText}
+        onPress={async () => {
+          await playClickSound(); // Play click sound on login text press
+          navigation.navigate('Login');
+        }}
+      >
         Already have an account?{' '}
         <Text style={styles.loginLink}>Login</Text>
       </Text>
+
+      {/* Custom Modal for Alerts */}
+      <Modal
+        visible={isModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <Text style={styles.modalMessage}>{modalMessage}</Text>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={async () => {
+                  await playClickSound(); // Play click sound on modal button press
+                  setModalVisible(false);
+                }}
+              >
+                <Text style={styles.modalButtonText}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </View>
   );
 }
@@ -180,15 +238,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#9146FF',
   },
   logo: {
-    width: '100%',
+    width: width * 0.99,
     height: height * 0.3,
     resizeMode: 'contain',
+    alignSelf: 'center',
     marginBottom: 20,
   },
   nameContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 15
+    marginBottom: 15,
   },
   inputName: {
     flex: 1,
@@ -199,58 +258,98 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     height: height * 0.06,
     paddingHorizontal: 10,
-    textShadowColor: 'black',  
-    textShadowOffset: { width: 2, height: 2 },  
-    textShadowRadius: 2, 
     fontFamily: 'LilitaOne_400Regular',
   },
   input: {
-    height: height * 0.06,
     borderColor: '#ddd',
     borderWidth: 1,
     borderRadius: 8,
     backgroundColor: '#fff',
+    height: height * 0.06,
+    marginBottom: 10,
     paddingHorizontal: 10,
-    marginBottom: 15,
-    textShadowColor: 'black',  
-    textShadowOffset: { width: 2, height: 2 },  
-    textShadowRadius: 2, 
     fontFamily: 'LilitaOne_400Regular',
   },
+  registerButtonWrapper: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#02DB02', // Background color of the button
+    borderRadius: 25, // Rounded corners
+    paddingVertical: 15, // Vertical padding
+    elevation: 10, // Adds shadow for Android
+    shadowColor: '#000', // Shadow color for iOS
+    shadowOffset: { width: 0, height: 4 }, // Shadow offset
+    shadowOpacity: 0.3, // Shadow transparency
+    shadowRadius: 4, // Makes the shadow smoother
+    width: '80%', // Width of the button
+    marginBottom: 50, // Space below the button
+    borderBottomWidth: 8, // Adds a bottom border
+    borderBottomColor: '#019B01', // Optional color for bottom border
+    borderWidth: 0.2,
+    alignSelf:'center',
+    marginTop: 20,
+  },
+  
   registerButton: {
-    backgroundColor: '#02EB02',
-    paddingVertical: height * 0.02,
-    paddingHorizontal: width * 0.1,
-    borderRadius: 5,
-    alignSelf: 'center',
-    marginTop: height * 0.05,
-    borderWidth: 1,
-    borderColor: 'black',
+    width: '100%', // Full width inside the wrapper
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 25, // Rounded corners (same as wrapper)
   },
   buttonText: {
     color: '#fff',
-    fontSize: 25,
+    fontSize: 16,
     fontFamily: 'LilitaOne_400Regular',
-    textShadowColor: 'black',  
-    textShadowOffset: { width: 2, height: 2 },  
-    textShadowRadius: 2, 
+    textShadowColor: 'black',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 2,
   },
   loginText: {
-    fontSize: 20,
-    alignSelf: 'center',
-    marginTop: height * 0.05,
+    textAlign: 'center',
     color: '#fff',
-    textShadowColor: 'black',  
-    textShadowOffset: { width: 2, height: 2 },  
-    textShadowRadius: 2, 
+    marginTop: 15,
     fontFamily: 'LilitaOne_400Regular',
+    fontSize: 20,
+    textShadowColor: 'black',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 2,
   },
   loginLink: {
-    textDecorationLine: 'underline',
     color: '#007fff',
-    textShadowColor: 'black',  
-    textShadowOffset: { width: 2, height: 2 },  
-    textShadowRadius: 2, 
-    fontFamily: 'LilitaOne_400Regular',
+    textShadowColor: 'black',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+  },
+  modalContainer: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalMessage: {
+    fontSize: 18,
+    marginBottom: 20,
+  },
+  modalButton: {
+    backgroundColor: '#6C3483',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#9146FF',
   },
 });

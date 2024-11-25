@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFonts } from 'expo-font';
 import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
 import { playClickSound, unloadSound } from '../soundUtils'; // Adjust the path as needed
+import LottieView from 'lottie-react-native'; // Import Lottie
 
 const { width, height } = Dimensions.get('window');
 
@@ -38,10 +39,12 @@ const Games = ({ navigation }) => {
         }}
       >
         <LinearGradient colors={['#CD11FC', '#E26DFF', '#E26DFF', '#CD11FC']} style={styles.gradient}>
-          <Image
-            source={require('../images/magnifying.png')}
-            style={[styles.icon, { left: width * 0.1 }]}
-          />
+        <LottieView 
+                source={require('../assets/search.json')} 
+                autoPlay 
+                loop 
+                style={styles.animation}
+              />
           <Text style={styles.outlineText}>Context Clues</Text>
           <Text style={styles.btnText}>Context Clues</Text>
         </LinearGradient>
@@ -54,8 +57,8 @@ const Games = ({ navigation }) => {
           navigation.navigate('QuizScreen'); // Navigate to QuizScreen
         }}
       >
-        <LinearGradient colors={['#0000FF', '#1E90FF', '#87CEFA', '#4682B4']} style={styles.gradient}>
-          <Image
+        <LinearGradient colors={['#0000FF', '#1E90FF', '#87CEFA', '#0000FF']} style={styles.gradient}>
+        <Image
             source={require('../images/compass.png')}
             style={[styles.icon, { top: height * 0.01, left: width * 0.08 }]}
           />
@@ -133,6 +136,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#9C59FE',
+  },
+  animation: {
+    width: 180,
+    height: 180,
+    marginTop:-20,
+    position:'absolute',
   },
 });
 

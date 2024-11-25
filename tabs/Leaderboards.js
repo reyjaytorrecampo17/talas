@@ -4,6 +4,7 @@ import { useFonts } from 'expo-font';
 import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import LottieView from 'lottie-react-native'; // Import Lottie
 
 // Get device dimensions for responsiveness
 const { width, height } = Dimensions.get('window');
@@ -62,9 +63,14 @@ const Leaderboards = () => {
                       ? { uri: user.profilePicture }
                       : require('../images/defaultImage.jpg')
                   }
-                  style={styles.profileImage}
+                  style={styles.profileImageTop}
                 />
-                <Image source={require('../images/crown.png')} style={styles.crownImage} />
+                <LottieView 
+                source={require('../assets/crown.json')} 
+                autoPlay 
+                loop 
+                style={styles.animation}
+              />
                 <View style={[styles.rankBadge, { backgroundColor: 'gold' }]}>
                   <Text style={styles.rankText}>{index + 1}</Text>
                 </View>
@@ -215,12 +221,27 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     margin: 5,
   },
+  profileImageTop: {
+    height: width * 0.24, // 20% of the screen width
+    width: width * 0.24,  // 20% of the screen width
+    borderRadius: 100,
+    borderWidth: 2,
+    margin: 5,
+    zIndex:0,
+  },
   crownImage: {
     height: 50,
     width: 70,
     top: -30,
     zIndex: 1,
     position: 'absolute',
+  },
+  animation: {
+    width: 180,
+    height: 150,
+    zIndex:1,
+    position: 'absolute',
+    top: -80,
   },
   rankBadge: {
     justifyContent: 'center',

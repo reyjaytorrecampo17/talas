@@ -629,11 +629,11 @@ const QuizScreen = () => {
           <View style={styles.modalContent}>
             <Animated.View style={{ transform: [{ scale: animatedValue }] }}>
             <LottieView
-  source={isCorrect ? require('../assets/check.json') : require('../assets/wrong.json')}
-  autoPlay
-  loop={false}
-  style={styles.animation}
-/>
+              source={isCorrect ? require('../assets/check.json') : require('../assets/wrong.json')}
+              autoPlay
+              loop={false}
+              style={styles.animation}
+            />
             </Animated.View>
             <Button title="Next" onPress={proceedToNextQuestion} />
           </View>

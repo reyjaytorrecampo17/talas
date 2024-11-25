@@ -18,7 +18,10 @@ import MainIdea from './screens/Unit1/MainIdea';
 import Sequencing from './screens/Unit1/Sequencing';
 import ShortVowels from './screens/Unit1/ShortVowels';
 import CrossWord from './screens/CrossWord';
+import Settings from './screens/Settings';
+import PrivacyPolicy from './screens/PrivacyPolicy';
 import { LevelProvider } from './context/LevelContext';
+import { SoundProvider } from './screens/SoundContext'; // Import the provider
 
 const Stack = createStackNavigator();
 
@@ -34,31 +37,35 @@ export default function App() {
   }, []);
 
   return (
-    <LevelProvider>
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName={user ? 'Navigation' : 'Login'}>
-        {user ? (
-          <Stack.Screen name="Navigation" component={Navigation} options={{ headerShown: false }} />
-        ) : (
-          <>
-             <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
-            <Stack.Screen name="RegisterScreen" component={RegisterScreen} options={{ headerShown: false }} />
-          </>
-        )}
-        <Stack.Screen name="ShortVowels" component={ShortVowels} options={{ headerShown: false }}/>
-        <Stack.Screen name="CrossWord" component={CrossWord} options={{ headerShown: false }}/>
-        <Stack.Screen name="Sequencing" component={Sequencing} options={{ headerShown: false }}/>
-        <Stack.Screen name="MainIdea" component={MainIdea} options={{ headerShown: false }}/>
-        <Stack.Screen name="Shop" component={Shop} options={{ headerShown: false }}/>
-        <Stack.Screen name="Lessons" component={LessonScreen} options={{ headerShown: false }}/>
-        <Stack.Screen name="TalasBooks" component={TalasBooks} options={{ headerShown: false }}/>
-        <Stack.Screen name="ProfileScreen" component={ProfileScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="QuizScreen" component={QuizScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="PretestScreen" component={PretestScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="UnitScreen" component={UnitScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="Vocabulary" component={Vocabulary} options={{ headerShown: false }} />
-      </Stack.Navigator>
-    </NavigationContainer>
-    </LevelProvider>
+    <SoundProvider> 
+      <LevelProvider>
+        <NavigationContainer>
+          <Stack.Navigator initialRouteName={user ? 'Navigation' : 'Login'}>
+            {user ? (
+              <Stack.Screen name="Navigation" component={Navigation} options={{ headerShown: false }} />
+            ) : (
+              <>
+                <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+                <Stack.Screen name="RegisterScreen" component={RegisterScreen} options={{ headerShown: false }} />
+              </>
+            )}
+            <Stack.Screen name="ShortVowels" component={ShortVowels} options={{ headerShown: false }} />
+            <Stack.Screen name="CrossWord" component={CrossWord} options={{ headerShown: false }} />
+            <Stack.Screen name="Sequencing" component={Sequencing} options={{ headerShown: false }} />
+            <Stack.Screen name="MainIdea" component={MainIdea} options={{ headerShown: false }} />
+            <Stack.Screen name="Shop" component={Shop} options={{ headerShown: false }} />
+            <Stack.Screen name="Lessons" component={LessonScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="TalasBooks" component={TalasBooks} options={{ headerShown: false }} />
+            <Stack.Screen name="ProfileScreen" component={ProfileScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="QuizScreen" component={QuizScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="PretestScreen" component={PretestScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="UnitScreen" component={UnitScreen} options={{ headerShown: false }} />
+            <Stack.Screen name="Vocabulary" component={Vocabulary} options={{ headerShown: false }} />
+            <Stack.Screen name="Settings" component={Settings} options={{ headerShown: false }} />
+            <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicy} options={{ headerShown: false }} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </LevelProvider>
+    </SoundProvider>
   );
 }
