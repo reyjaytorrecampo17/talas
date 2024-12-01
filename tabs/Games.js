@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Dimensions } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFonts } from 'expo-font';
 import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
 import { playClickSound, unloadSound } from '../soundUtils'; // Adjust the path as needed
 import LottieView from 'lottie-react-native'; // Import Lottie
+import { useNavigation } from '@react-navigation/native'; // Import useNavigation hook
 
 const { width, height } = Dimensions.get('window');
 
-const Games = ({ navigation }) => {
+const Games = () => {
+  const navigation = useNavigation(); // Use the useNavigation hook
   const [fontsLoaded] = useFonts({
     LilitaOne_400Regular,
   });
@@ -31,6 +33,7 @@ const Games = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      {/* Context Clues Button */}
       <TouchableOpacity
         style={styles.btnQuiz}
         onPress={async () => {
@@ -39,45 +42,51 @@ const Games = ({ navigation }) => {
         }}
       >
         <LinearGradient colors={['#CD11FC', '#E26DFF', '#E26DFF', '#CD11FC']} style={styles.gradient}>
-        <LottieView 
-                source={require('../assets/search.json')} 
-                autoPlay 
-                loop 
-                style={styles.animation}
-              />
+          <LottieView 
+            source={require('../assets/search.json')} 
+            autoPlay 
+            loop 
+            style={styles.animation}
+          />
           <Text style={styles.outlineText}>Context Clues</Text>
           <Text style={styles.btnText}>Context Clues</Text>
         </LinearGradient>
       </TouchableOpacity>
 
+      {/* Story Adventure Button */}
       <TouchableOpacity
         style={styles.btnQuiz}
         onPress={async () => {
           await playClickSound(); // Play click sound
-          navigation.navigate('QuizScreen'); // Navigate to QuizScreen
+          navigation.navigate('Hangman'); // Navigate to Hangman
         }}
       >
         <LinearGradient colors={['#0000FF', '#1E90FF', '#87CEFA', '#0000FF']} style={styles.gradient}>
-        <Image
-            source={require('../images/compass.png')}
-            style={[styles.icon, { top: height * 0.01, left: width * 0.08 }]}
+          <LottieView 
+            source={require('../assets/compass.json')} 
+            autoPlay 
+            loop 
+            style={styles.animation}
           />
           <Text style={styles.outlineText}>Story Adventure</Text>
           <Text style={styles.btnText}>Story Adventure</Text>
         </LinearGradient>
       </TouchableOpacity>
 
+      {/* CrossWord Button */}
       <TouchableOpacity
         style={styles.btnQuiz}
         onPress={async () => {
           await playClickSound(); // Play click sound
-          navigation.navigate('CrossWord'); // Navigate to QuizScreen
+          navigation.navigate('CrossWord'); // Navigate to CrossWord
         }}
       >
         <LinearGradient colors={['#008C0E', '#6BF36B', '#6BF36B', '#008C0E']} style={styles.gradient}>
-          <Image
-            source={require('../images/crossword.png')}
-            style={[styles.icon, { top: height * 0.01, left: width * 0.08 }]}
+          <LottieView 
+            source={require('../assets/crossWord.json')} 
+            autoPlay 
+            loop 
+            style={styles.animation}
           />
           <Text style={styles.outlineText}>CrossWord</Text>
           <Text style={styles.btnText}>CrossWord</Text>
@@ -91,7 +100,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
-    backgroundColor: '#9C59FE',
+  },
+  backgroundImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center', // Aligns the content vertically
   },
   btnQuiz: {
     width: width * 0.9,
@@ -142,6 +156,7 @@ const styles = StyleSheet.create({
     height: 180,
     marginTop:-20,
     position:'absolute',
+    backgroundColor: 'transparent'
   },
 });
 

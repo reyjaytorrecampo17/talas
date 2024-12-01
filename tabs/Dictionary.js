@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, ActivityIndicator, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
+import { AntDesign } from 'react-native-vector-icons';
 import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
 import { useRoute } from '@react-navigation/native';
 import { playClickSound } from '../soundUtils';  // Import the sound utility function
@@ -124,68 +125,62 @@ export default function Dictionary() {
     
     return (
         <SafeAreaView style={styles.container}>
-            <Text style={styles.heading}>Dictionary</Text>
-            <View style={styles.inputContainer}>
-                <TextInput
-                    style={styles.input}
-                    placeholder="Search..."
-                    value={newWord}
-                    onChangeText={(text) => searchWord(text)}
-                />
-                <TouchableOpacity 
-                    style={styles.button} 
-                    onPress={() => {
-                        playClickSound(); // Play click sound on press
-                        getInfo(); 
-                    }}
-                >
-                    <Text style={styles.buttonText}>Search</Text>
-                </TouchableOpacity>
-            </View>
-            <TouchableOpacity 
-                style={styles.clearButton} 
-                onPress={() => {
-                    playClickSound(); // Play click sound on press
-                    clear();
-                }}
-            >
-                <Text style={styles.clearButtonText}>Clear</Text>
-            </TouchableOpacity>
-            {error && <Text style={styles.errorText}>{error}</Text>}
-            {checkedWord && !error && (
-                <ScrollView 
-                    style={styles.resultsContainer} 
-                    contentContainerStyle={styles.scrollViewContent}
-                >
-                    <Text style={styles.word}>{checkedWord}</Text>
-                    <TouchableOpacity 
-                        style={styles.playButton} 
-                        onPress={() => {
-                            playClickSound(); // Play click sound on press
-                            playTextToSpeech();
-                        }}
-                    >
-                        {/* Play icon with white color */}
-                        <FontAwesome name="volume-up" size={20} color="white" />
-                    </TouchableOpacity>
-                    <View style={styles.resultTextContainer}>
-                        <Text style={styles.resultLabel}>Definition:</Text>
-                        <Text style={styles.resultText}>{definition}</Text>
-                        <Text style={styles.resultLabel}>Example:</Text>
-                        <Text style={styles.resultText}>{example}</Text>
+            {fontsLoaded ? (
+                <>
+                    <Text style={styles.heading}>Dictionary</Text>
+
+                    <View style={styles.inputContainer}>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Search..."
+                            value={newWord}
+                            onChangeText={(text) => searchWord(text)}
+                        />
+                        <TouchableOpacity style={styles.button} onPress={() => { playClickSound(); getInfo(newWord); }}>
+                            <Text style={styles.buttonText}>Search</Text>
+                        </TouchableOpacity>
                     </View>
-                </ScrollView>
+
+                    <TouchableOpacity style={styles.clearButton} onPress={() => { playClickSound(); clear(); }}>
+                        <Text style={styles.clearButtonText}>Clear</Text>
+                    </TouchableOpacity>
+
+                    {error && <Text style={styles.errorText}>{error}</Text>}
+
+                    {checkedWord && !error && (
+                        <ScrollView
+                            style={styles.resultsContainer}
+                            contentContainerStyle={styles.scrollViewContent}
+                        >
+                            <Text style={styles.word}>{checkedWord}</Text>
+                            <TouchableOpacity style={styles.playButton} onPress={() => { playClickSound(); playTextToSpeech(); }}>
+                                <AntDesign name="sound" size={20} color="#ffffff" />
+                            </TouchableOpacity>
+                            <View style={styles.resultTextContainer}>
+                                <Text style={styles.resultLabel}>Definition:</Text>
+                                <Text style={styles.resultText}>{definition}</Text>
+                                <Text style={styles.resultLabel}>Example:</Text>
+                                <Text style={styles.resultText}>{example}</Text>
+                            </View>
+                        </ScrollView>
+                    )}
+                </>
+            ) : (
+                <ActivityIndicator size="24" color="#ffffff" />
             )}
         </SafeAreaView>
     );
 }
-
 const styles = StyleSheet.create({
     container: {
         alignItems: 'center',
-        backgroundColor: '#F5F5F5',
         padding: 20,
     },
+    backgroundImage: {
+        flex: 1,
+        width: '100%',
+        height: '100%',
+      },
     errorText: {
         color: 'red',
         fontSize: 18,

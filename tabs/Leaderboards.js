@@ -170,10 +170,11 @@ const Leaderboards = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#9C59FE',
   },
   scrollViewContainer: {
     paddingBottom: 50,
+    flex: 1,
+    zIndex: 1, // Content above video
   },
   loaderContainer: {
     flex: 1,

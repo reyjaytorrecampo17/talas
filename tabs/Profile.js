@@ -92,7 +92,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
-    backgroundColor: '#9C59FE',
   },
   scrollContainer: {
     flexGrow: 1, // Allow the ScrollView to grow
@@ -109,7 +108,7 @@ const styles = StyleSheet.create({
     width: '25%',
     height: 80,
     borderWidth: 2,
-    backgroundColor: '#7348B2',
+    backgroundColor: 'rgba(115, 72, 178, 0.9)', // Adjust the alpha value (0.0 to 1.0) for transparency
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'flex-start',

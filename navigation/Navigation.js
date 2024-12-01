@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator, Modal, TouchableWithoutFeedback, Switch  } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator, Modal, TouchableWithoutFeedback, Switch, Dimensions  } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { LinearGradient } from 'expo-linear-gradient'; // Linear Gradient
 import * as Animatable from 'react-native-animatable'; // Animations
@@ -18,12 +18,21 @@ import { useNavigation } from '@react-navigation/native';
 import { signOut } from 'firebase/auth';
 import { auth,db } from '../services/firebase'// Ensure this path is correct
 import { getAuth } from 'firebase/auth';
-import { doc, onSnapshot  } from 'firebase/firestore';
+import { doc, onSnapshot ,getDoc ,updateDoc,serverTimestamp} from 'firebase/firestore';
 import { useLevel } from '../context/LevelContext';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 import { playClickSound } from '../soundUtils'; // Import playClickSound
 import Settings from '../screens/Settings';
+import Notifications from '../screens/Notifications';
+import * as TaskManager from 'expo-task-manager';
+import * as BackgroundFetch from 'expo-background-fetch';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Background from '../screens/Background';
+
+const BACKGROUND_TASK = 'background-battery-refresh';
+
+const { width, height } = Dimensions.get('window');
 
 const Tab = createBottomTabNavigator();
 
@@ -68,6 +77,141 @@ const ProfileHeader = ({ userId }) => {
   const [isBackgroundMusicEnabled, setIsBackgroundMusicEnabled] = useState(true);
   const [musicVolume, setMusicVolume] = useState(0.5);
   const [sound, setSound] = useState();
+  const [battery, setBattery] = useState(0);
+
+// Define the background task for battery refresh
+TaskManager.defineTask(BACKGROUND_TASK, async () => {
+  try {
+    const userId = auth.currentUser?.uid;
+    console.log('Background task started, userId:', userId);
+    if (!userId) {
+      return BackgroundFetch.Result.Failed;
+    }
+
+    const userRef = doc(db, 'users', userId);
+    const userSnapshot = await getDoc(userRef);
+
+    if (userSnapshot.exists()) {
+      const userData = userSnapshot.data();
+      console.log('User data:', userData);
+
+      const lastUpdated = userData.lastBatteryUpdated?.toDate() || new Date(0);
+      const now = new Date();
+      const timeElapsed = (now - lastUpdated) / 60000; // Time in minutes
+      console.log('Time elapsed (minutes):', timeElapsed);
+
+      if (timeElapsed >= 10) {
+        const refreshedBattery = Math.min(userData.battery + 1, 5); // Increment, cap at 5
+        if (refreshedBattery > 0) {
+          await updateDoc(userRef, {
+            battery: refreshedBattery,
+            lastBatteryUpdated: serverTimestamp(),
+          });
+          console.log('Battery refreshed to:', refreshedBattery);
+        } else {
+          console.log('Battery is at 0 and cannot be incremented yet.');
+        }
+      }
+      
+    }
+    return BackgroundFetch.Result.NoData;
+  } catch (error) {
+    console.error('Background task error:', error);
+    return BackgroundFetch.Result.Failed;
+  }
+});
+
+// Fetch battery on component mount
+useEffect(() => {
+  fetchBattery();
+}, []);
+
+// Register background task
+useEffect(() => {
+  const registerBackgroundTask = async () => {
+    try {
+      await BackgroundFetch.registerTaskAsync(BACKGROUND_TASK, {
+        minimumInterval: 10 * 60, // Every 10 minutes
+        stopOnTerminate: false,
+        startOnBoot: true,
+      });
+      console.log('Background task registered successfully.');
+    } catch (error) {
+      console.error('Failed to register background task:', error);
+    }
+  };
+
+  registerBackgroundTask();
+}, []);
+
+// Periodically refresh the battery every minute
+useEffect(() => {
+  const interval = setInterval(() => {
+    console.log('Periodic battery refresh triggered.');
+    refreshBattery();
+  }, 60000); // Check every minute
+  return () => clearInterval(interval); // Cleanup on unmount
+}, []);
+
+// Function to fetch battery state
+const fetchBattery = async () => {
+  try {
+    const userId = auth.currentUser?.uid;
+    if (!userId) {
+      console.warn('No user logged in.');
+      return;
+    }
+
+    const userRef = doc(db, 'users', userId);
+    const userSnapshot = await getDoc(userRef);
+
+    if (userSnapshot.exists()) {
+      const userData = userSnapshot.data();
+      console.log('Fetched battery:', userData.battery);
+      setBattery(userData.battery || 5); // Default to 5 if undefined
+    } else {
+      console.warn('No user data found in Firestore.');
+    }
+  } catch (error) {
+    console.error('Failed to fetch battery:', error);
+  }
+};
+
+// Function to refresh the battery
+const refreshBattery = async () => {
+  try {
+    const userId = auth.currentUser?.uid;
+    if (!userId) {
+      console.warn('No user logged in.');
+      return;
+    }
+
+    const userRef = doc(db, 'users', userId);
+    const userSnapshot = await getDoc(userRef);
+
+    if (userSnapshot.exists()) {
+      const userData = userSnapshot.data();
+      const lastUpdated = userData.lastBatteryUpdated?.toDate() || new Date(0);
+      const now = new Date();
+      const timeElapsed = (now - lastUpdated) / 600; // Time in minutes
+
+      if (timeElapsed >= 10) {
+        const refreshedBattery = Math.min(userData.battery + 1, 5); // Increment, cap at 5
+        await updateDoc(userRef, {
+          battery: refreshedBattery,
+          lastBatteryUpdated: serverTimestamp(),
+        });
+        console.log('Battery refreshed to:', refreshedBattery);
+        setBattery(refreshedBattery); // Update state
+      } else {
+        console.log('Battery not updated. Time elapsed is less than 10 minutes.');
+      }
+    }
+  } catch (error) {
+    console.error('Failed to refresh battery:', error);
+  }
+};
+
 
   const toggleBackgroundMusic = () => {
     setIsBackgroundMusicEnabled(prevState => !prevState);
@@ -87,6 +231,8 @@ const ProfileHeader = ({ userId }) => {
       return;
     }
 
+  
+
     const userDocRef = doc(db, 'users', userId);
   
     // Set up a real-time listener
@@ -100,6 +246,7 @@ const ProfileHeader = ({ userId }) => {
           setPoints(userData.points || 0); // Set user's current XP as points
           setLevel(userData.level || 0); // Set user's level
           setProgress(userData.currentXP / userData.nextLevelXP || 0); // Calculate progress
+          setBattery(userData.battery || 0);
           setProfilePicture(userData.profilePicture || '');
           setProfilePicture(userProfilePicture);
           setLoading(false); 
@@ -120,6 +267,7 @@ const ProfileHeader = ({ userId }) => {
     // Cleanup the listener on component unmount
     return () => unsubscribe();
   }, [userId]);
+
   useFocusEffect(
     useCallback(() => {
       // Reset dropdown when the screen is focused
@@ -131,7 +279,26 @@ const ProfileHeader = ({ userId }) => {
       };
     }, [])
   );
-  
+  useEffect(() => {
+    const checkLevelAndNavigate = async () => {
+      try {
+        const storedLevel = await AsyncStorage.getItem('currentLevel');
+        const currentLevel = parseInt(storedLevel || '0', 10);
+        setLevel(currentLevel);
+
+        if (currentLevel % 5 === 0 && currentLevel !== 0) {
+          const postTestCompleted = await AsyncStorage.getItem(`postTestCompletedLevel${currentLevel}`);
+          if (!postTestCompleted) {
+            navigation.navigate('PostTestScreen', { level: currentLevel });
+          }
+        }
+      } catch (error) {
+        console.error('Error checking post-test status:', error);
+      }
+    };
+
+    checkLevelAndNavigate();
+  }, [navigation]);
   
   const toggleDropdown = () => {
     setDropdownVisible(!dropdownVisible);
@@ -169,212 +336,183 @@ const ProfileHeader = ({ userId }) => {
 
   return (
     <TouchableWithoutFeedback onPress={closeDropdown}>
-    <SafeAreaView style={styles.container}>
-    <LinearGradient colors={['#050313', '#18164C', '#25276B']} style={styles.headerContainer}>
-      <View style={{flexDirection: 'column'}}>
-      <View style={styles.profileImageContainer}>
-      <Image
-        source={profilePicture ? { uri: profilePicture } : require('../images/defaultImage.jpg')}
-        style={styles.profileImage}
-      />
-      </View>
-      {/* Level Badge with Level-up Animation */}
-      <View style={styles.levelBadgeContainer}>
-        <View 
-          delay={1500} 
-          style={styles.levelBadge}
-          iterationCount={level > 38 ? 'infinite' : 1} // Flashing effect on level-up
+      <SafeAreaView style={styles.container}>
+        {/* Header Container with Lottie Animation as Background */}
+        <LinearGradient
+          colors={['#050313', '#18164C', '#25276B']} // Your gradient colors
+          style={styles.headerContainer}
         >
-          <Text style={styles.levelText}>{level}</Text>
-        </View>
-      </View>
-      </View>
-      <View style={styles.DropdownContainer}>
-        <TouchableOpacity 
-          onPress={async () => { 
-            await playClickSound(); // Play the sound on press
-            toggleDropdown(); // Trigger your dropdown toggle function
-          }} 
-          style={styles.hamburger} 
-          accessibilityRole="button" 
-          accessible={true} 
-          accessibilityLabel="Menu"
-        >
-          <Text style={styles.hamburgerText}>☰</Text>
-        </TouchableOpacity>
-        {dropdownVisible && (
-          <View style={styles.dropdown}>
-            <TouchableOpacity onPress={toggleSettingsModal} style={styles.menuItem}>
-              <Text style={styles.menuText}>Settings</Text>
-            </TouchableOpacity>
-             <Settings visible={settingsModalVisible} onClose={toggleSettingsModal} />
-            <TouchableOpacity onPress={toggleNotificationsModal} style={styles.menuItem}>
-              <Text style={styles.menuText}>Notifications</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => {
-                playClickSound('clickmenu.wav'); // Play sound when Edit Profile is pressed
-                toggleDropdown();
-                navigation.navigate('ProfileScreen');
-              }}
-              style={styles.menuItem}
-            >
-              <Text style={styles.menuText}>Edit Profile</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => {
-                playClickSound('clickmenu.wav'); // Play sound when Logout is pressed
-                toggleDropdown();
-                toggleModal();
-              }}
-              style={styles.menuItem}
-            >
-              <Text style={styles.menuText}>Logout</Text>
-            </TouchableOpacity>
+          {/* Your header content */}
+          <View style={{ flexDirection: 'column' }}>
+            <View style={styles.profileImageContainer}>
+              <Image
+                source={profilePicture ? { uri: profilePicture } : require('../images/defaultImage.jpg')}
+                style={styles.profileImage}
+              />
+            </View>
+            {/* Level Badge with Level-up Animation */}
+            <View style={styles.levelBadgeContainer}>
+              <View
+                delay={1500}
+                style={styles.levelBadge}
+                iterationCount={level > 38 ? 'infinite' : 1} // Flashing effect on level-up
+              >
+                <Text style={styles.levelText}>{level}</Text>
+              </View>
+            </View>
           </View>
-        )}
-      </View>
-      <View style={{flexDirection: 'column'}}>
-      <LinearGradient
-          colors={['#003343', '#003343']} // Specify your gradient colors here
-          style={{
-           height: 30,
-           width: 150,
-           borderRadius: 5,
-           top: -10
-          }}
-          
-        ><View style={{flexDirection: 'row', alignItems: 'center'}}>
-          {loading ? (
-            <Text style={styles.username}>Loading...</Text>
-          ) : error ? (
-            <Text style={styles.username}>{error}</Text>
-          ) : (
-            <Text style={styles.username}>{ign}</Text>
-          )}
+  
+          <View style={styles.DropdownContainer}>
+            <TouchableOpacity
+              onPress={async () => {
+                await playClickSound(); // Play the sound on press
+                toggleDropdown(); // Trigger your dropdown toggle function
+              }}
+              style={styles.hamburger}
+              accessibilityRole="button"
+              accessible={true}
+              accessibilityLabel="Menu"
+            >
+              <Text style={styles.hamburgerText}>☰</Text>
+            </TouchableOpacity>
+            {dropdownVisible && (
+              <View style={styles.dropdown}>
+                <TouchableOpacity onPress={toggleSettingsModal} style={styles.menuItem}>
+                  <Text style={styles.menuText}>Settings</Text>
+                </TouchableOpacity>
+                <Settings visible={settingsModalVisible} onClose={toggleSettingsModal} />
+  
+                <TouchableOpacity onPress={toggleNotificationsModal} style={styles.menuItem}>
+                  <Text style={styles.menuText}>Notifications</Text>
+                </TouchableOpacity>
+                <Notifications visible={notificationsModalVisible} onClose={toggleNotificationsModal} />
+  
+                <TouchableOpacity
+                  onPress={() => {
+                    playClickSound('clickmenu.wav'); // Play sound when Edit Profile is pressed
+                    toggleDropdown();
+                    navigation.navigate('ProfileScreen');
+                  }}
+                  style={styles.menuItem}
+                >
+                  <Text style={styles.menuText}>Edit Profile</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    playClickSound('clickmenu.wav'); // Play sound when Logout is pressed
+                    toggleDropdown();
+                    toggleModal();
+                  }}
+                  style={styles.menuItem}
+                >
+                  <Text style={styles.menuText}>Logout</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+  
+          <View style={{ flexDirection: 'column' }}>
+            <LinearGradient
+              colors={['#003343', '#003343']} // Specify your gradient colors here
+              style={{
+                height: 30,
+                width: 150,
+                borderRadius: 5,
+                top: -10,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                {loading ? (
+                  <Text style={styles.username}>Loading...</Text>
+                ) : error ? (
+                  <Text style={styles.username}>{error}</Text>
+                ) : (
+                  <Text style={styles.username}>{ign}</Text>
+                )}
+              </View>
+            </LinearGradient>
+            <View style={styles.pointsContainer}>
+              <Image
+                source={require('../images/star.png')}
+                style={{ height: 20, width: 20, marginLeft: 5 }}
+              />
+              <Text delay={1000} style={styles.points}>
+                {points} PTS.
+              </Text>
+            </View>
+  
+            {/* XP Progress Bar */}
+            <View style={styles.progressBarContainer}>
+              <Progress.Bar progress={progress} width={90} color="#01D201" style={styles.progressBar} />
+            </View>
+          </View>
+  
+          {/* Currency/Stats with Pressable Scaling Animation */}
+          <View style={styles.statsContainer}>
+            {/* Bolt Icon */}
+            <Image source={require('../images/Streak.png')} style={{ width: 60, height: 35, zIndex: 1, top: 2 }} />
+            <View style={styles.AccessContainer}>
+              <Text style={styles.statText}>1</Text>
+            </View>
+            {/* Diamond Icon */}
+            <TouchableOpacity
+              style={{ zIndex: 2, left: 10, top: 20 }}
+              onPress={async () => {
+                await playClickSound(); // Play the sound on press
+                navigation.navigate('Shop'); // Navigate to the 'Shop' screen
+              }}
+            >
+              <Image source={require('../images/Plus.png')} style={{ width: 20, height: 20 }} />
+            </TouchableOpacity>
+  
+            <Image source={require('../images/Gem.png')} style={{ width: 30, height: 35, zIndex: 1, right: 24 }} />
+  
+            <View style={styles.AccessContainer}>
+              <Text style={styles.statText}>1</Text>
+            </View>
+  
+            {/* Battery Icon */}
+            <TouchableOpacity
+              style={{ zIndex: 2, left: 10, top: 20 }}
+              onPress={async () => {
+                await playClickSound(); // Play the click sound
+                navigation.navigate('Shop'); // Navigate to the 'Shop' screen
+              }}
+            >
+              <Image source={require('../images/Plus.png')} style={{ width: 20, height: 20 }} />
+            </TouchableOpacity>
+  
+            <Image source={require('../images/battery.png')} style={{ width: 30, height: 35, zIndex: 1, right: 24 }} />
+            <View style={styles.AccessContainer}>
+              <Text style={styles.statText}>{battery}</Text>
+            </View>
           </View>
         </LinearGradient>
-        <View style={styles.pointsContainer}>
-          <Image
-            source={(require('../images/star.png'))}
-            style={{ height: 20, width: 20, marginLeft: 5}}
-          />
-          <Text delay={1000} style={styles.points}>
-            {points} PTS.
-          </Text>
-        </View>
-
-        {/* XP Progress Bar */}
-        <View style={styles.progressBarContainer}>
-        <Progress.Bar 
-          progress={progress} 
-          width={90} 
-          color="#01D201" 
-          style={styles.progressBar} 
-        />
-        </View>
-        </View>
-
-        {/* Currency/Stats with Pressable Scaling Animation */}
-      <View style={styles.statsContainer}>
-        {/* Bolt Icon */}
-            <Image 
-              source={require('../images/Streak.png')}
-              style = {{width: 60, height: 35, zIndex: 1, top:2}}
-            />
-          <View style={styles.AccessContainer}>
-            <Text style={styles.statText}>1</Text>
+  
+        {/* Modal for Confirmation */}
+        <Modal transparent={true} animationType="slide" visible={isModalVisible} onRequestClose={toggleModal}>
+          <View style={styles.ExitmodalContainer}>
+            <View style={styles.ExitmodalContent}>
+              <Text style={styles.modalText}>Leaving so soon?</Text>
+              <View style={{ flexDirection: 'row' }}>
+                <TouchableOpacity onPress={handleLogout}>
+                  <View style={styles.modalButtonYes}>
+                    <Text style={styles.modalButton}>Yes</Text>
+                  </View>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={toggleModal}>
+                  <View style={styles.modalButtonNo}>
+                    <Text style={styles.modalButton}>No</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
-        {/* Diamond Icon */}
-        <TouchableOpacity 
-          style={{zIndex: 2, left: 10, top: 20}}
-          onPress={async () => { 
-            await playClickSound(); // Play the sound on press
-            navigation.navigate('Shop'); // Navigate to the 'Shop' screen
-          }}
-        >
-          <Image
-            source={require('../images/Plus.png')}
-            style={{width: 20, height: 20}}
-          />
-        </TouchableOpacity>
-
-        <Image 
-          source={require('../images/Gem.png')}
-          style={{width: 30, height: 35, zIndex: 1, right: 24}}
-        />
-              
-        <View style={styles.AccessContainer}>
-          <Text style={styles.statText}>1</Text>
-        </View>
-
-        {/* Battery Icon */}
-        <TouchableOpacity 
-          style={{zIndex: 2, left: 10, top: 20}}
-          onPress={async () => { 
-            await playClickSound(); // Play the click sound
-            navigation.navigate('Shop'); // Navigate to the 'Shop' screen
-          }}
-        >
-          <Image
-            source={require('../images/Plus.png')}
-            style={{width: 20, height: 20}}
-          />
-        </TouchableOpacity>
-
-        <Image 
-          source={require('../images/battery.png')}
-          style={{width: 30, height: 35, zIndex: 1, right: 24}}
-        />
-        <View style={styles.AccessContainer}>
-          <Text style={styles.statText}>5</Text>
-        </View>
-      </View>
-    </LinearGradient>
-              <Modal
-                transparent={true}
-                animationType="slide"
-                visible={isModalVisible}
-                onRequestClose={toggleModal}
-            >
-                <View style={styles.ExitmodalContainer}>
-                    <View style={styles.ExitmodalContent}>
-                        <Text style={styles.modalText}>Leaving so soon?</Text>
-                        <View style={{flexDirection: 'row'}}>
-                        <TouchableOpacity onPress={handleLogout}>
-                          <View style={styles.modalButtonYes}>                 
-                            <Text style={styles.modalButton}>Yes</Text>                     
-                        </View> 
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={toggleModal}>
-                        <View style={styles.modalButtonNo}>
-                          <Text style={styles.modalButton}>No</Text>
-                        </View></TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
-
-      {/* Notifications Modal */}
-      <Modal
-        visible={notificationsModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={toggleNotificationsModal}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Notifications</Text>
-            <Text style={styles.modalContent}>Here are your notifications settings.</Text>
-            <TouchableOpacity onPress={toggleNotificationsModal} style={styles.closeButton}>
-              <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    </SafeAreaView>
+        </Modal>
+      </SafeAreaView>
     </TouchableWithoutFeedback>
-  );
+  );  
+  
 };
 
 const Navigation = () => {
@@ -391,105 +529,126 @@ const Navigation = () => {
 
   return (
     <Tab.Navigator
-      initialRouteName={initialRoute} // Dynamically set the initial route
-      screenOptions={({ route }) => ({
-        tabBarStyle: { backgroundColor: '#2c2964', position: 'absolute' },
-        tabBarActiveTintColor: '#9146FF',
-        tabBarInactiveTintColor: 'white',
-        tabBarIcon: ({ focused }) => {
-          let iconSource;
+  initialRouteName={initialRoute}
+  screenOptions={({ route }) => ({
+    tabBarStyle: { backgroundColor: '#2c2964', position: 'absolute' },
+    tabBarActiveTintColor: '#9146FF',
+    tabBarInactiveTintColor: 'white',
+    tabBarIcon: ({ focused }) => {
+      let iconSource;
+      if (route.name === 'Leaderboards') {
+        iconSource = require('../images/navicon/podium.png');
+      } else if (route.name === 'Games') {
+        iconSource = require('../images/navicon/playing.png');
+      } else if (route.name === 'Home') {
+        iconSource = require('../images/navicon/home.png');
+      } else if (route.name === 'Dictionary') {
+        iconSource = require('../images/navicon/dictionary.png');
+      } else if (route.name === 'Profile') {
+        iconSource = require('../images/navicon/profile.png');
+      }
+      return <AnimatedIcon source={iconSource} focused={focused} />;
+    },
+    tabBarLabel: ({ focused }) =>
+      focused ? (
+        <Text
+          style={{
+            fontFamily: 'LilitaOne_400Regular',
+            color: 'white',
+            fontSize: 10,
+            marginTop: 20,
+          }}
+        >
+          {route.name}
+        </Text>
+      ) : null,
+      tabBarItemStyle: {
+        borderWidth: 1.5,
+        borderColor: 'black',
+        paddingBottom: 5,
+        paddingTop: 5,
+      },
+      tabBarButton: (props) => (
+        <TouchableWithoutFeedback
+          onPress={async () => {
+            await playClickSound(); // Play sound when a tab is clicked
+            props.onPress(); // Proceed with navigation
+          }}
+        >
+          <View {...props} />
+        </TouchableWithoutFeedback>
+      ),
+    })}
+  >
 
-          if (route.name === 'Leaderboards') {
-            iconSource = require('../images/navicon/podium.png');
-          } else if (route.name === 'Games') {
-            iconSource = require('../images/navicon/playing.png');
-          } else if (route.name === 'Home') {
-            iconSource = require('../images/navicon/home.png');
-          } else if (route.name === 'Dictionary') {
-            iconSource = require('../images/navicon/dictionary.png');
-          } else if (route.name === 'Profile') {
-            iconSource = require('../images/navicon/profile.png');
-          }
+  <Tab.Screen
+    name="Leaderboards"
+    options={{
+      headerShown: true,
+      header: () => <ProfileHeader userId={getAuth().currentUser?.uid} />,
+    }}
+  >
+    {() => (
+      <Background>
+        <Leaderboards />
+      </Background>
+    )}
+  </Tab.Screen>
 
-          return <AnimatedIcon source={iconSource} focused={focused} />;
-        },
-        tabBarLabel: ({ focused }) =>
-          focused ? (
-            <Text
-              style={{
-                fontFamily: 'LilitaOne_400Regular',
-                color: 'white',
-                fontSize: 10,
-                marginTop: 20,
-              }}
-            >
-              {route.name}
-            </Text>
-          ) : null,
-        tabBarItemStyle: {
-          borderWidth: 1.5,
-          borderColor: 'black',
-          paddingBottom: 5,
-          paddingTop: 5,
-        },
-        tabBarButton: (props) => (
-          <TouchableWithoutFeedback
-            onPress={async () => {
-              await playClickSound(); // Play sound when a tab is clicked
-              props.onPress(); // Proceed with navigation
-            }}
-          >
-            <View {...props} />
-          </TouchableWithoutFeedback>
-        ),
-      })}
-    >
-      <Tab.Screen
-        name="Leaderboards"
-        component={Leaderboards}
-        options={{
-          headerLeft: false,
-          headerShown: true,
-          header: () => <ProfileHeader userId={getAuth().currentUser?.uid} />,
-        }}
-        initialParams={{ userId: getAuth().currentUser?.uid }}
-      />
-      <Tab.Screen
-        name="Games"
-        component={Games}
-        options={{
-          headerLeft: false,
-          headerShown: true,
-          header: () => <ProfileHeader userId={getAuth().currentUser?.uid} />,
-        }}
-      />
-      <Tab.Screen
-        name="Home"
-        component={Home}
-        options={{
-          headerLeft: false,
-          headerShown: true,
-          header: () => <ProfileHeader userId={getAuth().currentUser?.uid} />,
-        }}
-      />
-      <Tab.Screen
-        name="Dictionary"
-        component={Dictionary}
-        options={{
-          headerLeft: false,
-          headerShown: false,
-        }}
-      />
-      <Tab.Screen
-        name="Profile"
-        component={Profile}
-        options={{
-          headerLeft: false,
-          headerShown: true,
-          header: () => <ProfileHeader userId={getAuth().currentUser?.uid} />,
-        }}
-      />
-    </Tab.Navigator>
+  <Tab.Screen
+    name="Games"
+    options={{
+      headerShown: true,
+      header: () => <ProfileHeader userId={getAuth().currentUser?.uid} />,
+    }}
+  >
+    {() => (
+      <Background>
+        <Games />
+      </Background>
+    )}
+  </Tab.Screen>
+
+  <Tab.Screen
+    name="Home"
+    options={{
+      headerShown: true,
+      header: () => <ProfileHeader userId={getAuth().currentUser?.uid} />,
+    }}
+  >
+    {() => (
+      <Background>
+        <Home />
+      </Background>
+    )}
+  </Tab.Screen>
+
+  <Tab.Screen
+    name="Dictionary"
+    options={{ headerShown: false }}
+  >
+    {() => (
+      <Background>
+        <Dictionary />
+      </Background>
+    )}
+  </Tab.Screen>
+
+  <Tab.Screen
+    name="Profile"
+    options={{
+      headerShown: true,
+      header: () => <ProfileHeader userId={getAuth().currentUser?.uid} />,
+    }}
+  >
+    {() => (
+      <Background>
+        <Profile />
+      </Background>
+    )}
+  </Tab.Screen>
+</Tab.Navigator>
+
   );
 };
 
@@ -751,7 +910,7 @@ closeButton:{
     textShadowColor: 'black',  
     textShadowOffset: { width: 1, height: 1 },  
     textShadowRadius: 2, 
-  }
+  },
 });
 
 export default Navigation;

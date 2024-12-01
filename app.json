@@ -3,7 +3,7 @@
     "name": "Talas",
     "slug": "Talas",
     "version": "1.0.0",
-    "scheme": "Talas",
+    "scheme": "talas",
     "platforms": [
       "ios",
       "android",
@@ -45,7 +45,9 @@
         "projectId": "27fc95ef-115d-44d0-a59a-5adf21b6f7a1"
       }
     },
-    "owner": "reyjay04"
+    "owner": "reyjay04",
+    "plugins": [
+      "expo-video"
+    ]
   }
-  
 }

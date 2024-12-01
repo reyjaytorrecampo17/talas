@@ -7,9 +7,10 @@ import ShowInstructions from './ShowInstructions';
 import { Audio } from 'expo-av'; // Import Audio module
 import { LinearGradient } from 'expo-linear-gradient';
 import { db ,auth} from '../services/firebase';
-import { collection, doc, getDoc ,updateDoc  , increment ,serverTimestamp } from "firebase/firestore";
+import { collection, doc, getDoc ,updateDoc  , increment ,serverTimestamp,onSnapshot } from "firebase/firestore";
 import Icon from 'react-native-vector-icons/FontAwesome';
-
+import * as TaskManager from 'expo-task-manager';
+import * as BackgroundFetch from 'expo-background-fetch';
 
 const { width, height } = Dimensions.get('window');
 const QuizScreen = () => {
@@ -31,6 +32,7 @@ const QuizScreen = () => {
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [pretestStatus, setPretestStatus] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [gameOver, setGameOver] = useState(false);
   const [gameOverModalVisible, setGameOverModalVisible] = useState(false); // State for "game over" modal
   const [hintVisible, setHintVisible] = useState(false);
   const animatedValue = useRef(new Animated.Value(1)).current;
@@ -41,8 +43,45 @@ const QuizScreen = () => {
   const [timeLeft, setTimeLeft] = useState(30); // Set timer to 30 seconds per question
   const [timerActive, setTimerActive] = useState(false); // Flag to control timer
   const [points,setPoints] = useState();
+  const [battery, setBattery] = useState(0);
+  
 
 
+  // Function to decrease battery count and update Firestore
+  const decreaseBattery = async () => {
+    try {
+      const userId = auth.currentUser?.uid;
+      if (!userId) {
+        console.warn('No user logged in.');
+        return;
+      }
+  
+      const userRef = doc(db, 'users', userId);
+      const userSnapshot = await getDoc(userRef);
+  
+      if (userSnapshot.exists()) {
+        const userData = userSnapshot.data();
+        const newBattery = Math.max(userData.battery - 1, 0); // Ensure it doesn't drop below 0
+  
+        if (newBattery === 0) {
+          console.log('Battery is depleted.');
+          // Optional: Trigger an error or notify the user
+          Alert.alert('Battery Empty', 'You have no more battery left.');
+        }
+  
+        await updateDoc(userRef, {
+          battery: newBattery,
+        });
+        console.log('Battery decreased to:', newBattery);
+        setBattery(newBattery); // Update state
+      }
+    } catch (error) {
+      console.error('Failed to decrease battery:', error);
+    }
+  };
+  
+  
+  
 
   // Audio-related state
   const [sound, setSound] = useState(null);
@@ -77,7 +116,7 @@ const QuizScreen = () => {
     
     const handleTimeOut = () => {
       alert('Time is up!');
-      proceedToNextQuestion(); // Move to the next question automatically
+      loseLife();
     };
     
 
@@ -239,6 +278,10 @@ const QuizScreen = () => {
   }, [currentStoryId, currentQuestionIndex, storyMap]);
   
       const handleAnswer = async (index, difficulty) => {
+        if (gameOver) {
+          return; // Prevent any further actions if the game is over
+        }
+        
             const userId = auth.currentUser?.uid;
             if (!userId) {
                 console.error("User ID is not available");
@@ -268,6 +311,7 @@ const QuizScreen = () => {
         
                 if (!isAnswerCorrect) {
                     loseLife(); // Handle losing a life
+                    
                 } else {
                     // Determine XP gain based on the difficulty level
                     let xpGain;
@@ -390,16 +434,36 @@ const QuizScreen = () => {
   };
   const [lives, setLives] = useState(2); // Start with 3 lives
 
+  const tryAgain = () =>{
+    if (battery === 0) {
+      Alert.alert('Battery Empty', 'Please wait for your battery to recharge before playing.');
+      navigation.navigate('Games');
+    }else{
+      setLives(2);
+      setGameOver(false);
+      setTimerActive(true);
+    }
+       
+  }
+
   const loseLife = () => {
     setLives((prevLives) => {
       if (prevLives > 1) {
-        return prevLives - 1;
+        return prevLives - 1; // Decrease lives if more than 1
       } else {
-        setGameOverModalVisible(true);
-        return 0;
+        triggerGameOver(); // Handle game over logic when lives are 0
+        return 0; // Ensure lives cannot go below 0
       }
     });
   };
+  
+  const triggerGameOver = () => {
+    setGameOverModalVisible(true); // Show the game over modal
+    setTimerActive(false)                // Pause the game
+    decreaseBattery();             // Deduct battery
+    setGameOver(true);             // Mark the game as over
+  };
+  
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -432,7 +496,9 @@ const QuizScreen = () => {
     setModalVisible(false);
      setTimerActive(true);
   };
-  
+  const exitGame = () => {
+    navigation.navigate('Games'); // Navigate to the "Games" screen
+  };
 
   return (
     <View style={styles.container}>
@@ -540,15 +606,25 @@ const QuizScreen = () => {
                   <View style={styles.modalBackground}>
                     <View style={styles.GameoverContainer}>
                       <Text style={styles.modalText}> You've lost all your lives! Try again to reset your hearts to full, but your battery will decrease by 10%.</Text>
+                      <Text style={styles.modalText}>Battery: {battery}/5</Text>
                       <TouchableOpacity
                         style={styles.modalButton}
                         onPress={() => {
                           setGameOverModalVisible(false); // Close the modal
-                          setLives(2); // Reset lives to 2 (or any initial number)
-                          // Optionally, reset the game or navigate to a different screen
+                          decreaseBattery();
+                          tryAgain();
                         }}
                       >
                         <Text style={styles.modalButtonText}>Try Again</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.modalButton}
+                        onPress={() => {
+                          setGameOverModalVisible(false); // Close the modal
+                          exitGame(); // Exit the game when "Exit" is pressed
+                        }}
+                      >
+                        <Text style={styles.modalButtonText}>Exit</Text>
                       </TouchableOpacity>
                     </View>
                   </View>

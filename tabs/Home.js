@@ -1,23 +1,87 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, ActivityIndicator, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, Image, StyleSheet, ActivityIndicator, TouchableOpacity, Dimensions, ImageBackground } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFonts } from 'expo-font';
 import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { playClickSound, unloadSound } from '../soundUtils';  // Import the sound utility functions
+import { playClickSound, unloadSound } from '../soundUtils';  // Import sound utility functions
 import LottieView from 'lottie-react-native'; // Import Lottie
+import { getDoc, doc } from 'firebase/firestore';
+import { db } from '../services/firebase'; // Adjust the path based on your project
+import { getAuth } from "firebase/auth";
+import { Video } from 'expo-av'; // Import the Video component
 
 const { width, height } = Dimensions.get('window');
 
-const Home = () => {
+const Home = ({ userId }) => {
   const [wordOfTheDay, setWordOfTheDay] = useState('');
   const [definition, setDefinition] = useState('');
   const [example, setExample] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [level, setLevel] = useState(0);
   const navigation = useNavigation();
 
+  // Fetch user level and navigate if necessary
+  useEffect(() => {
+    const fetchUserLevelAndNavigate = async () => {
+      try {
+        const auth = getAuth(); // Get Firebase auth instance
+        const user = auth.currentUser; // Get current user
+
+        if (user) {
+          const userId = user.uid; // Get the userId (UID)
+
+          const userRef = doc(db, 'users', userId);
+          const userDoc = await getDoc(userRef);
+
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            console.log("Fetched user data:", userData); // Log entire user data
+            const currentLevel = userData?.level ?? 0; // Default to 0 if level is undefined
+            setLevel(currentLevel);
+            console.log("User level:", currentLevel); // Log level to check
+
+            // Check if the current level is a multiple of 5 and post-test is not completed
+            if (currentLevel % 5 === 0 && currentLevel !== 0) {
+              const postTestCompleted = await AsyncStorage.getItem(`postTestCompletedLevel${currentLevel}`);
+              console.log("Post-test completion status:", postTestCompleted); // Log status of post-test completion
+              if (!postTestCompleted) {
+                navigation.navigate('PostTestScreen', { level: currentLevel });
+              }
+            }
+          } else {
+            console.error("User document does not exist.");
+          }
+        } else {
+          console.error("No user is currently logged in.");
+        }
+      } catch (error) {
+        console.error('Error fetching user level from Firestore:', error);
+        setError("Error fetching user data.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserLevelAndNavigate();
+  }, [navigation]);
+
+  const fetchPostTestStatus = async () => {
+    try {
+      const postTestCompleted = await AsyncStorage.getItem('postTestCompleted');
+      if (postTestCompleted) {
+        console.log('Post-test is completed');
+      } else {
+        console.log('Post-test is not completed');
+      }
+    } catch (error) {
+      console.error('Error checking post-test status:', error);
+    }
+  };
+
+  // Fetch the word of the day
   const fetchWordOfTheDay = async () => {
     try {
       // Fetch a random word
@@ -58,12 +122,14 @@ const Home = () => {
     setLoading(false);
   };
 
+  // Clean up sound when the component is unmounted
   useEffect(() => {
     return () => {
-      unloadSound(); // Clean up sound when the component is unmounted
+      unloadSound();
     };
   }, []);
 
+  // Check word of the day from AsyncStorage
   useEffect(() => {
     const checkWordOfTheDay = async () => {
       try {
@@ -103,78 +169,87 @@ const Home = () => {
     );
   }
 
-  // Function to handle navigation and sound on click
+  // Handle navigation and sound on click
   const handleClick = async (screen, params = {}) => {
-    await playClickSound();  // Play sound on press
-    navigation.navigate(screen, params);  // Navigate to the specified screen
+    await playClickSound(); // Play sound on press
+    navigation.navigate(screen, params); // Navigate to the specified screen
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.dictionaryTitle}>Word Of the Day</Text>
-      <TouchableOpacity
-        style={styles.dictionary}
-        onPress={() => handleClick('Dictionary', { word: wordOfTheDay })} // Pass parameters for navigation
-      >
-        <LinearGradient
-          colors={['#0000FF', '#00EEFF', '#00EEFF', '#0000FF']}
-          style={styles.WordContentContainer}
+      <View style={styles.container}>
+        <Text style={styles.dictionaryTitle}>Word Of the Day</Text>
+        <TouchableOpacity
+          style={styles.dictionary}
+          onPress={() => handleClick('Dictionary', { word: wordOfTheDay })}
         >
-          {loading ? (
-            <ActivityIndicator size="large" color="#fff" /> 
-          ) : error ? (
-            <Text style={styles.errorText}>{error}</Text>
-          ) : (
-            <>
-            <View style={{flexDirection: 'row', justifyContent: 'center', alignItems: 'center'}}>
-               <LottieView 
-                source={require('../assets/book.json')} 
-                autoPlay 
-                loop 
-                style={styles.animation}
-              />
-              
-              <Text style={styles.textTitle}>{wordOfTheDay}</Text>
-            </View>
-            </>
-          )}
+          <LinearGradient
+            colors={['#0000FF', '#00EEFF', '#00EEFF', '#0000FF']}
+            style={styles.WordContentContainer}
+          >
+            {loading ? (
+              <ActivityIndicator size="large" color="#fff" />
+            ) : error ? (
+              <Text style={styles.errorText}>{error}</Text>
+            ) : (
+              <>
+                <View style={{flexDirection: 'row', justifyContent: 'center', alignItems: 'center'}}>
+                  <LottieView 
+                    source={require('../assets/book.json')} 
+                    autoPlay 
+                    loop 
+                    style={styles.animation}
+                  />
+                  <Text style={styles.textTitle}>{wordOfTheDay}</Text>
+                </View>
+              </>
+            )}
+          </LinearGradient>
+        </TouchableOpacity>
 
-        </LinearGradient>
-      </TouchableOpacity>
-
-      <Text style={styles.title}>Start your learning journey here!</Text>
-      <TouchableOpacity 
-        style={styles.BooksLessonCon}
-        onPress={() => handleClick('Lessons')}  // Call handleClick with the screen name
-      >
-        <LinearGradient
-          colors={['#02EB02', '#02E702', '#02DD02', '#01D201']}
-          style={styles.contentContainer}
+        <Text style={styles.title}>Start your learning journey here!</Text>
+        <TouchableOpacity 
+          style={styles.BooksLessonCon}
+          onPress={() => handleClick('Lessons')}  // Call handleClick with the screen name
         >
-          <Image
-            source={require('../images/abc.png')}
-            style={styles.imageStyle}
-          />
-          <Text style={styles.textTitle}>Lessons</Text>
-        </LinearGradient>
-      </TouchableOpacity>
+          <LinearGradient
+            colors={['#CD11FC', '#E26DFF', '#E26DFF', '#CD11FC']}
+            style={styles.contentContainer}
+          >
+            <LottieView 
+              source={require('../assets/lessons.json')} 
+              autoPlay 
+              loop 
+              style={styles.animationLearn}
+            />
+            <Text style={styles.textTitle}>Lessons</Text>
+          </LinearGradient>
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.BooksLessonCon}
-        onPress={() => handleClick('TalasBooks')}  // Call handleClick with the screen name
-      >
-        <LinearGradient
-          colors={['#FEE20E', '#FCD113', '#FCD113', '#F6BA06']}
-          style={styles.contentContainer}
+        <TouchableOpacity
+          style={styles.BooksLessonCon}
+          onPress={() => navigation.navigate('TalasBooks')}  // Call handleClick with the screen name
         >
-          <Image
-            source={require('../images/talas.png')}
-            style={styles.largeImageStyle}
-          />
-          <Text style={styles.textTitle}>Talas Books</Text>
-        </LinearGradient>
-      </TouchableOpacity>
-    </View>
+          <LinearGradient
+            colors={['#008C0E', '#6BF36B', '#6BF36B', '#008C0E']}
+            style={styles.contentContainer}
+          >
+            <LottieView 
+              source={require('../assets/talasBooks.json')} 
+              autoPlay 
+              loop 
+              style={styles.animationLearn}
+            />
+            <Text style={styles.textTitleBooks}>Talas Books</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => navigation.navigate('PostTestScreen')}
+        >
+          <Text style={styles.buttonText}>Take Post-Test</Text>
+        </TouchableOpacity>
+      </View>
   );
 };
 
@@ -182,9 +257,23 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
-    backgroundColor: '#9747FF',
     paddingVertical: height * 0.03,
     paddingHorizontal: width * 0.05,
+  },
+  videoPlayer: {
+    position: 'absolute',
+    top: -50,
+    left: 0,
+    width: width, // Set width to match screen size
+    height: height, // Set height to match screen size
+    justifyContent: 'center',
+    alignItems: 'center',
+  },  
+  backgroundImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center', // Aligns the content vertically
   },
   contentContainer: {
     borderWidth: 1.5,
@@ -242,6 +331,16 @@ const styles = StyleSheet.create({
     textShadowColor: 'black',
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 2,
+    left: 10 
+  },
+  textTitleBooks:{
+    fontFamily: 'LilitaOne_400Regular',
+    fontSize: width * 0.06,
+    color: 'white',
+    textShadowColor: 'black',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 2,
+    left: 25
   },
   imageStyle: {
     height: height * 0.07,
@@ -281,6 +380,14 @@ const styles = StyleSheet.create({
     width: 180,
     height: 180,
     marginLeft: -50
+  },
+  animationLearn: {
+    width: 90,
+    height: 90,
+    marginTop:-20,
+    position:'absolute',
+    backgroundColor: 'transparent',
+    left: 5
   },
 });
 

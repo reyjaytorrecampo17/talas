@@ -21,6 +21,7 @@ import Checkbox from 'expo-checkbox';
 import { useFonts } from 'expo-font';
 import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
 import { playClickSound } from '../soundUtils'; // Adjust the path
+import * as Notifications from 'expo-notifications';
 
 const { width, height } = Dimensions.get('window');
 
