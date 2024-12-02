@@ -341,8 +341,9 @@ const styles = StyleSheet.create({
     fontFamily: 'LilitaOne_400Regular',
   },
   restpoints:{
-    fontSize: 20,
+    fontSize: 15,
     fontFamily: 'LilitaOne_400Regular',
+    alignSelf: 'center'
   }
 });
 

@@ -24,7 +24,7 @@ const TalasBooks = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <LinearGradient colors={['#050313', '#18164C', '#25276B']} style={styles.header}>
         <Text style={styles.title}>Library</Text>
         <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
@@ -35,7 +35,7 @@ const TalasBooks = ({ navigation }) => {
         
       </View>
       
-    </SafeAreaView>
+    </View>
   );
 };
 

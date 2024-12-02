@@ -797,7 +797,6 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     fontSize: 20,
     color: '#fff',
-    top: -5,
   },
   dropdown: {
     position: 'absolute',
