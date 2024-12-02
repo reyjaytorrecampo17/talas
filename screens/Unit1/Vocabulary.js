@@ -66,23 +66,24 @@ const Vocabulary = ({ route, navigation }) => {
   // Function to update the topic completion flag in Firestore (dynamically based on the unit number)
   const updateTopicCompletion = async () => {
     if (!userId) {
-      Alert.alert('Error', 'User ID is missing or invalid.');
-      console.error('Error updating user completion: User ID is missing or invalid.');
+      Alert.alert('Error', 'User ID is not available.');
       return;
     }
-
+  
     try {
-      const userRef = doc(db, 'users', userId); // Reference to the user's document
-      const fieldName = `vocabularyCompleted${unit}`; // Dynamic field based on unit
+      const userRef = doc(db, 'users', userId);
+      const fieldName = `vocabularyCompleted${unit}`;
+      
       await updateDoc(userRef, {
-        [fieldName]: true, // Mark the vocabulary as completed
+        [fieldName]: true,
       });
+  
+      console.log(`Successfully updated completion for Unit ${unit}`);
     } catch (error) {
       console.error('Error updating user completion:', error);
-      Alert.alert('Error', 'Failed to update completion status.');
+      Alert.alert('Error', 'Failed to update completion status. Please try again.');
     }
   };
-
   if (loading) {
     return (
       <View style={styles.loadingContainer}>

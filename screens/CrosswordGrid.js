@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, TextInput, StyleSheet, Text, Button, Alert, Dimensions, LayoutAnimation } from 'react-native';
+import { View, TextInput, StyleSheet, Text, Button, Alert, Dimensions, LayoutAnimation, ImageBackground, TouchableOpacity } from 'react-native';
+import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
 
 let level = 0;
 
-const generateInitialGrid = (crosswordData) => {
+const generateInitialGrid = (crosswordData, level) => {
     const initialGrid = Array(7).fill(0).map(() => Array(8).fill('X'));
     crosswordData[level].forEach(({ answer, startx, starty, orientation }) => {
         let x = startx - 1;
@@ -20,7 +21,7 @@ const generateInitialGrid = (crosswordData) => {
     return initialGrid;
 };
 
-const generateAnswerGrid = (crosswordData) => {
+const generateAnswerGrid = (crosswordData, level) => {
     const answerGrid = Array(7).fill(0).map(() => Array(8).fill('X'));
     crosswordData[level].forEach(({ answer, startx, starty, orientation }) => {
         let x = startx - 1;
@@ -38,45 +39,66 @@ const generateAnswerGrid = (crosswordData) => {
 };
 
 const CrosswordGrid = ({ crosswordData }) => {
-    const [grid, setGrid] = useState(generateInitialGrid(crosswordData));
+    const [grid, setGrid] = useState(generateInitialGrid(crosswordData, 0));
+    const [currentOrientation, setCurrentOrientation] = useState('across'); // Default orientation
+    const [level, setLevel] = useState(0); // Level state
     const inputRefs = useRef([]);
 
     useEffect(() => {
-        setGrid(generateInitialGrid(crosswordData));
-    }, [crosswordData]);
+        setGrid(generateInitialGrid(crosswordData, level));
+    }, [crosswordData, level]);
 
     const handleInputChange = (row, col, text) => {
         const newGrid = [...grid];
         newGrid[row][col] = text.toUpperCase();
         setGrid(newGrid);
-
-        // Focus on the next cell automatically
         focusNextCell(row, col, text);
     };
 
     const focusNextCell = (row, col, text) => {
-        if (text && col < 7) {
-            // Move to the next cell in the current row
-            let nextCell = inputRefs.current[row][col + 1];
-            if (nextCell && nextCell.focus) {
-                nextCell.focus();
-            }
-        } else if (text && row < 6) {
-            // Move to the first cell of the next row if current row is filled
-            let nextCell = inputRefs.current[row + 1][0];
-            if (nextCell && nextCell.focus) {
-                nextCell.focus();
+        if (text) {
+            if (currentOrientation === 'across') {
+                // Move right if orientation is 'across'
+                for (let i = col + 1; i < grid[row].length; i++) {
+                    if (inputRefs.current[row][i] && grid[row][i] === '') {
+                        inputRefs.current[row][i].focus();
+                        return;
+                    }
+                }
+            } else if (currentOrientation === 'down') {
+                // Move down if orientation is 'down'
+                for (let i = row + 1; i < grid.length; i++) {
+                    if (inputRefs.current[i][col] && grid[i][col] === '') {
+                        inputRefs.current[i][col].focus();
+                        return;
+                    }
+                }
             }
         }
     };
 
+    const handleCellFocus = (row, col) => {
+        // Identify the orientation based on the crossword clue
+        crosswordData[level].forEach(({ startx, starty, orientation, answer }) => {
+            const x = startx - 1;
+            const y = starty - 1;
+
+            if (orientation === 'across' && y === row && col >= x && col < x + answer.length) {
+                setCurrentOrientation('across');
+            } else if (orientation === 'down' && x === col && row >= y && row < y + answer.length) {
+                setCurrentOrientation('down');
+            }
+        });
+    };
+
     const handleGenerate = () => {
-        level = (level + 1) % crosswordData.length; // Cycle through levels
-        setGrid(generateInitialGrid(crosswordData));
+        const nextLevel = (level + 1) % crosswordData.length;
+        setLevel(nextLevel);
+        setGrid(generateInitialGrid(crosswordData, nextLevel));
     };
 
     const handleVerify = () => {
-        const answerGrid = generateAnswerGrid(crosswordData);
+        const answerGrid = generateAnswerGrid(crosswordData, level);
         let isCorrect = true;
         for (let y = 0; y < grid.length; y++) {
             for (let x = 0; x < grid[0].length; x++) {
@@ -91,15 +113,16 @@ const CrosswordGrid = ({ crosswordData }) => {
     };
 
     const handleReset = () => {
-        setGrid(generateInitialGrid(crosswordData));
+        setGrid(generateInitialGrid(crosswordData, level));
     };
 
     const handleSolve = () => {
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        const answerGrid = generateAnswerGrid(crosswordData);
+        const answerGrid = generateAnswerGrid(crosswordData, level);
         setGrid(answerGrid);
     };
 
+   
     const renderGrid = () => (
         <View>
             {grid.map((row, rowIndex) => (
@@ -117,10 +140,14 @@ const CrosswordGrid = ({ crosswordData }) => {
                                 return null;
                             })}
                             <TextInput
-                                key={`${rowIndex}-${colIndex}-${cell}`} // Force re-render
-                                style={[styles.cell, cell === 'X' ? styles.staticCell : null]}
+                                key={`${rowIndex}-${colIndex}-${cell}`}
+                                style={[
+                                    styles.cell,
+                                    cell === 'X' ? styles.staticCell : styles.editableCell, // Only apply background to editable cells
+                                ]}
                                 value={cell === 'X' ? '' : cell}
                                 editable={cell !== 'X'}
+                                onFocus={() => handleCellFocus(rowIndex, colIndex)}
                                 onChangeText={(text) => handleInputChange(rowIndex, colIndex, text)}
                                 maxLength={1}
                                 ref={(el) => {
@@ -168,19 +195,30 @@ const CrosswordGrid = ({ crosswordData }) => {
     };
 
     return (
-        <View style={styles.container}>
-            {renderQuestions()}
-            {renderGrid()}
-            <View style={styles.buttonContainer}>
-                <Button color="#228B22" title="Generate" onPress={handleGenerate} />
-                <View style={styles.gap} />
-                <Button color="#228B22" title="Verify" onPress={handleVerify} />
-                <View style={styles.gap} />
-                <Button color="#228B22" title="Reset" onPress={handleReset} />
-                <View style={styles.gap} />
-                <Button color="#228B22" title="Solve" onPress={handleSolve} />
+        <ImageBackground
+            source={require('../assets/background.jpg')}
+            style={styles.backgroundImage}
+            resizeMode="cover"
+        >
+            <View style={styles.container}>
+                {renderQuestions()}
+                {renderGrid()}
+                <View style={styles.buttonContainer}>
+                    <TouchableOpacity style={styles.button} onPress={handleGenerate}>
+                        <Text style={styles.buttonText}>Generate</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.button} onPress={handleVerify}>
+                        <Text style={styles.buttonText}>Verify</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.button} onPress={handleReset}>
+                        <Text style={styles.buttonText}>Reset</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.button} onPress={handleSolve}>
+                        <Text style={styles.buttonText}>Solve</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
-        </View>
+        </ImageBackground>
     );
 };
 
@@ -189,6 +227,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+        padding: 20,
     },
     row: {
         flexDirection: 'row',
@@ -200,20 +239,26 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         margin: 1,
         borderColor: '#228B22',
-        width: Dimensions.get('window').width / 10, // Dynamic sizing
+        width: Dimensions.get('window').width / 10,
         height: Dimensions.get('window').width / 10,
         textAlign: 'center',
-        fontSize: 13, // Proportional font size
+        fontSize: 14,
+        borderRadius: 5,
+        transition: 'all 0.2s ease', // Smooth transition
+    },
+    editableCell: {
+        backgroundColor: 'rgba(255, 255, 255, 0.7)', // Background for editable cells
+        fontFamily: 'LilitaOne_400Regular',
     },
     staticCell: {
         borderColor: 'transparent',
-        color: '#000', // Ensure visibility of static cells
+        color: '#000', // Static cells without background
     },
     smallDigit: {
         position: 'absolute',
         top: 2,
         left: 2,
-        fontSize: 12, // Slightly larger for better readability
+        fontSize: 12,
         fontWeight: 'bold',
     },
     questionsContainer: {
@@ -221,8 +266,9 @@ const styles = StyleSheet.create({
         padding: 10,
     },
     questionText: {
-        fontSize: 16,
-        fontStyle: 'italic',
+        fontSize: 17,
+        color: 'black',
+        fontFamily: 'LilitaOne_400Regular',
     },
     headingContainer: {
         marginVertical: 5,
@@ -232,13 +278,38 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#228B22',
         textAlign: 'center',
+        fontFamily: 'LilitaOne_400Regular',
     },
     buttonContainer: {
         flexDirection: 'row',
         marginTop: 20,
+        justifyContent: 'space-around',
+        width: '100%',
     },
-    gap: {
-        width: 10,
+    button: {
+        backgroundColor: '#228B22',
+        paddingVertical: 10,
+        paddingHorizontal: 15,
+        borderRadius: 8,
+        margin: 5,
+        elevation: 3,
+        opacity: 0.9,
+    },
+    buttonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
+        textAlign: 'center',
+        fontFamily: 'LilitaOne_400Regular',
+        textShadowColor: 'black',
+        textShadowOffset: { width: 2, height: 2 },
+        textShadowRadius: 2,
+    },
+    backgroundImage: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        opacity: 0.9,
     },
 });
 

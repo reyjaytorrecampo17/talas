@@ -9,6 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { db ,auth} from '../services/firebase';
 import { collection, doc, getDoc ,updateDoc  , increment ,serverTimestamp,onSnapshot } from "firebase/firestore";
 import Icon from 'react-native-vector-icons/FontAwesome';
+import { playClickSound } from '../soundUtils'; // Adjust the import path if needed
 import * as TaskManager from 'expo-task-manager';
 import * as BackgroundFetch from 'expo-background-fetch';
 
@@ -417,17 +418,22 @@ const QuizScreen = () => {
           } else {
             playSound('gameover');
           }
-          // All questions from all stories have been answered
+          const showAlert = (navigation, score, totalQuestions) => {
+          // Play click sound when the alert is triggered
+          playClickSound();
+
+          // Display the alert
           Alert.alert(
             'Congratulations!',
             `Your final score is ${score} out of ${totalQuestions}`, // Use totalQuestions here
             [
               {
                 text: 'OK',
-                onPress: () => navigation.navigate('Home'),
+                onPress: () => navigation.navigate('Home'), // Navigate to Home when 'OK' is pressed
               },
             ]
           );
+        };
         }
       }
     }
@@ -496,8 +502,12 @@ const QuizScreen = () => {
     setModalVisible(false);
      setTimerActive(true);
   };
-  const exitGame = () => {
-    navigation.navigate('Games'); // Navigate to the "Games" screen
+  const exitGame = async () => {
+    // Play the click sound
+    await playClickSound();
+  
+    // Navigate to the "Games" screen after the sound plays
+    navigation.navigate('Games');
   };
 
   return (
@@ -511,9 +521,16 @@ const QuizScreen = () => {
       {!selectedDifficulty ? (
       <View style={styles.difficultyContainer}>
       <View style={styles.diffHeader}>
-        <TouchableOpacity style={styles.closeButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.closeButtonText}>X</Text>
-        </TouchableOpacity>
+      <TouchableOpacity 
+        style={styles.closeButton} 
+        onPress={async () => {
+          await playClickSound(); // Play the click sound before going back
+          navigation.goBack(); // Navigate back
+        }}
+      >
+        <Text style={styles.closeButtonText}>X</Text>
+      </TouchableOpacity>
+
       <Text style={styles.difficultyTitle}>Select Difficulty:</Text>
       </View>
       {['easy', 'medium', 'hard'].map((difficulty) => (
@@ -521,8 +538,12 @@ const QuizScreen = () => {
           key={difficulty}
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
-          onPress={() => handleDifficultySelection(difficulty)}
+          onPress={async () => {
+            await playClickSound(); // Play the click sound
+            handleDifficultySelection(difficulty); // Handle the difficulty selection
+          }}
         >
+          {/* Your other components inside TouchableOpacity */}
           <Animated.View style={[styles.difficultyButton, { transform: [{ scale: bounceValue }] }]}>
             <LinearGradient
               colors={
@@ -550,9 +571,13 @@ const QuizScreen = () => {
             <View style ={{marginTop: -25}}>
               <LinearGradient colors={['#050313', '#18164C', '#25276B']} style={styles.header}>
                 <View style={{flexDirection: 'row' ,justifyContent: 'flex-start', alignItems: 'center', margin: 20}}>
-                  <TouchableOpacity style={styles.pauseButton} onPress={handlePause}>
-                    <Icon name="pause" size={15} color="#fff" />
-                  </TouchableOpacity>
+                <TouchableOpacity style={styles.pauseButton} onPress={async () => { 
+                  await playClickSound(); // Play the click sound
+                  handlePause(); // Execute the pause function
+                }}>
+                  <Icon name="pause" size={15} color="#fff" />
+                </TouchableOpacity>
+
                   <View style={{flexDirection: 'column', justifyContent: 'center', alignItems: 'center', marginLeft: 55, marginTop: 20}}>
                   <View style={styles.levelContainer}>
                     <Text style={styles.levelText}>Level 1</Text>
@@ -580,22 +605,34 @@ const QuizScreen = () => {
                 >
                   <View style={styles.modalBackground}>
                     <View style={styles.PausemodalContainer}>
-                    <Image
+                      <Image
                         source={require('../images/pause.png')}
-                        style={{width: 150, height: 60, marginTop: -35}}
+                        style={{ width: 150, height: 60, marginTop: -35 }}
                       />
-                    
-                      <TouchableOpacity style={styles.modalButtonResume} onPress={handleResume}>
+                      
+                      <TouchableOpacity
+                        style={styles.modalButtonResume}
+                        onPress={async () => {
+                          await playClickSound(); // Play the click sound
+                          handleResume(); // Resume the game
+                        }}
+                      >
                         <Text style={styles.modalButtonText}>Resume</Text>
                       </TouchableOpacity>
                       
-                    
-                      <TouchableOpacity style={styles.modalButtonExit} onPress={() => navigation.goBack()}>
+                      <TouchableOpacity
+                        style={styles.modalButtonExit}
+                        onPress={async () => {
+                          await playClickSound(); // Play the click sound
+                          navigation.goBack(); // Exit the game or navigate back
+                        }}
+                      >
                         <Text style={styles.modalButtonText}>Exit</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
                 </Modal>
+
                 
                 <Modal
                   animationType="slide"
@@ -605,23 +642,29 @@ const QuizScreen = () => {
                 >
                   <View style={styles.modalBackground}>
                     <View style={styles.GameoverContainer}>
-                      <Text style={styles.modalText}> You've lost all your lives! Try again to reset your hearts to full, but your battery will decrease by 10%.</Text>
+                      <Text style={styles.modalText}>
+                        You've lost all your lives! Try again to reset your hearts to full, but your battery will decrease by 10%.
+                      </Text>
                       <Text style={styles.modalText}>Battery: {battery}/5</Text>
+
                       <TouchableOpacity
                         style={styles.modalButton}
-                        onPress={() => {
+                        onPress={async () => {
+                          await playClickSound(); // Play the click sound
                           setGameOverModalVisible(false); // Close the modal
-                          decreaseBattery();
-                          tryAgain();
+                          decreaseBattery(); // Decrease battery
+                          tryAgain(); // Restart the game
                         }}
                       >
                         <Text style={styles.modalButtonText}>Try Again</Text>
                       </TouchableOpacity>
+
                       <TouchableOpacity
                         style={styles.modalButton}
-                        onPress={() => {
+                        onPress={async () => {
+                          await playClickSound(); // Play the click sound
                           setGameOverModalVisible(false); // Close the modal
-                          exitGame(); // Exit the game when "Exit" is pressed
+                          exitGame(); // Exit the game
                         }}
                       >
                         <Text style={styles.modalButtonText}>Exit</Text>
@@ -639,14 +682,17 @@ const QuizScreen = () => {
                   <Text style={styles.storyText}>{currentStory.text}</Text>
                   <Text style={styles.difficulty}>Difficulty: {currentStory.difficulty}</Text>
                   <TouchableOpacity 
-                  onPress={() => {
-                    setShowQuestions(true);
-                    setTimeLeft(30); // Reset timer for each question
-                    setTimerActive(true); // Start the timer
-                  }}
-                  style={styles.StartQuestionButton}>
-                  <Text style= {styles.StartQuestionButtonText}>Start Questions</Text>
+                    onPress={async () => {
+                      await playClickSound(); // Play the click sound
+                      setShowQuestions(true);
+                      setTimeLeft(30); // Reset timer for each question
+                      setTimerActive(true); // Start the timer
+                    }}
+                    style={styles.StartQuestionButton}
+                  >
+                    <Text style={styles.StartQuestionButtonText}>Start Questions</Text>
                   </TouchableOpacity>
+
                 </View>
               ) : (
                 <View style={styles.questionContainer}>
@@ -656,20 +702,23 @@ const QuizScreen = () => {
                 </Text>                 
                 {shuffledOptions.map((option, index) => (
                   <TouchableOpacity
-                    key={index}
-                    style={[
-                      styles.optionButton,
-                      selectedAnswer !== null && (
-                        index === selectedAnswer
-                          ? (isCorrect ? styles.correctButton : styles.incorrectButton)
-                          : styles.defaultButton
-                      ),
-                    ]}
-                    onPress={() => handleAnswer(index,selectedDifficulty)}
-                    disabled={selectedAnswer !== null}
-                  >
-                    <Text style={styles.optionText}>{option}</Text>
-                  </TouchableOpacity>
+                  key={index}
+                  style={[
+                    styles.optionButton,
+                    selectedAnswer !== null && (
+                      index === selectedAnswer
+                        ? (isCorrect ? styles.correctButton : styles.incorrectButton)
+                        : styles.defaultButton
+                    ),
+                  ]}
+                  onPress={async () => {
+                    await playClickSound(); // Play the click sound
+                    handleAnswer(index, selectedDifficulty); // Handle the answer selection
+                  }}
+                  disabled={selectedAnswer !== null}
+                >
+                  <Text style={styles.optionText}>{option}</Text>
+                </TouchableOpacity>                
                 ))}
             
             
@@ -679,7 +728,10 @@ const QuizScreen = () => {
                 <View style={{backgroundColor: '#00D958', borderWidth: 1, borderRadius: 10, alignSelf: 'flex-start', height: 50, width: 50}}>
                 <TouchableOpacity
                   style={styles.hintButton}
-                  onPress={handleHint} // Show the hint when pressed
+                  onPress={async () => {
+                    await playClickSound(); // Play the click sound
+                    handleHint(); // Show the hint when pressed
+                  }}
                   disabled={hintVisible} // Disable the hint button once it's shown
                 >
                   <Image
@@ -687,7 +739,7 @@ const QuizScreen = () => {
                     style={{alignSelf: 'center', width: 35, height: 35, margin: 10}}
                   />
                   <View style={{alignSelf: 'flex-end', width: 18, height: 18, position: 'absolute', backgroundColor: '#fff', borderRadius: 30, top: 28, margin: 1, borderWidth: 1}}>
-                    <Text style= {{alignSelf: 'center'}}>5</Text>
+                    <Text style={{alignSelf: 'center'}}>5</Text>
                   </View>
                 </TouchableOpacity>
                 </View>
@@ -700,21 +752,33 @@ const QuizScreen = () => {
           )}
         </>
       )}
-      <Modal visible={showFeedbackModal} transparent={true} animationType="fade" onRequestClose={() => setShowFeedbackModal(false)}>
+      <Modal 
+        visible={showFeedbackModal} 
+        transparent={true} 
+        animationType="fade" 
+        onRequestClose={() => setShowFeedbackModal(false)}
+      >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
             <Animated.View style={{ transform: [{ scale: animatedValue }] }}>
-            <LottieView
-              source={isCorrect ? require('../assets/check.json') : require('../assets/wrong.json')}
-              autoPlay
-              loop={false}
-              style={styles.animation}
-            />
+              <LottieView
+                source={isCorrect ? require('../assets/check.json') : require('../assets/wrong.json')}
+                autoPlay
+                loop={false}
+                style={styles.animation}
+              />
             </Animated.View>
-            <Button title="Next" onPress={proceedToNextQuestion} />
+            <Button
+              title="Next"
+              onPress={async () => {
+                await playClickSound(); // Play the click sound when "Next" is pressed
+                proceedToNextQuestion(); // Proceed to the next question
+              }}
+            />
           </View>
         </View>
       </Modal>
+
       </ImageBackground>
     </View>
   );

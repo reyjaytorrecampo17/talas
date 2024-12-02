@@ -19,7 +19,7 @@ import { Ionicons } from '@expo/vector-icons'; // Import Ionicons for back arrow
 
 const { width, height } = Dimensions.get('window');
 
-const LessonScreen = ({ navigation }) => {
+const LessonScreen = ({ navigation , userId}) => {
   const [fontsLoaded] = useFonts({
     LilitaOne_400Regular,
   });
@@ -82,10 +82,10 @@ const LessonScreen = ({ navigation }) => {
   }
 
   const isUnit2Locked =
-    !statuses.ShortVowelsCompleted ||
-    !statuses.Sequencing ||
-    !statuses.mainIdeaCompleted ||
-    !statuses.vocabularyCompleted;
+    !statuses.ShortVowelsCompleted1 ||
+    !statuses.Sequencing1 ||
+    !statuses.mainIdeaCompleted1 ||
+    !statuses.vocabularyCompleted1;
 
   const isUnit3Locked =
     !statuses.ShortVowelsCompleted2 ||
@@ -164,10 +164,10 @@ const LessonScreen = ({ navigation }) => {
           </TouchableWithoutFeedback>
         </View>
       </LinearGradient>
-      {renderUnitButton(1, false, () => navigation.navigate('UnitScreen', { unit: 1 }))}
-      {renderUnitButton(2, isUnit2Locked, () => navigation.navigate('UnitScreen', { unit: 2 }))}
-      {renderUnitButton(3, isUnit3Locked, () => navigation.navigate('UnitScreen', { unit: 3 }))}
-      {renderUnitButton(4, isUnit4Locked, () => navigation.navigate('UnitScreen', { unit: 4 }))}
+      {renderUnitButton(1, false, () => navigation.navigate('UnitScreen', { unit: 1 , userId}))}
+      {renderUnitButton(2, isUnit2Locked, () => navigation.navigate('UnitScreen', { unit: 2 , userId}))}
+      {renderUnitButton(3, isUnit3Locked, () => navigation.navigate('UnitScreen', { unit: 3 , userId}))}
+      {renderUnitButton(4, isUnit4Locked, () => navigation.navigate('UnitScreen', { unit: 4 , userId}))}
     </View>
   );
 };

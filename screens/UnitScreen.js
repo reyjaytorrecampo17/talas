@@ -1,16 +1,33 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, Dimensions,Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
+import { getAuth } from 'firebase/auth';
 import { useFonts, LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+const auth = getAuth();
+const user = auth.currentUser;
 const { width, height } = Dimensions.get('window');
 
 const UnitScreen = ({ navigation, route }) => {
   const { unit } = route.params;
+ 
+  
+  if (!user) {
+    Alert.alert('Error', 'User is not authenticated. Please login again.');
+    navigation.navigate('Login'); // Navigate to login screen if not authenticated
+    return;
+  }
+  
+  const userId = user.uid; // Use user ID here
+    if (!userId) {
+      Alert.alert('Error', 'User ID is missing. Please login again.');
+      return;
+    }
+
   const [scale] = useState(new Animated.Value(1));
 
   const [fontsLoaded] = useFonts({ LilitaOne_400Regular });
@@ -76,7 +93,7 @@ const UnitScreen = ({ navigation, route }) => {
                 playClickSound();
               }}
               onPressOut={() => handlePressOut()}
-              onPress={() => navigation.navigate(lesson.id, { unit })}
+              onPress={() => navigation.navigate(lesson.id, { unit, userId })}
               style={[styles.button, styles[`gradient${index % 4}`]]}
             >
               <Ionicons name={lesson.icon} size={35} color="#FFF" style={styles.icon} />

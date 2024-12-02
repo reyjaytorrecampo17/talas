@@ -83,17 +83,26 @@ const Sequencing = ({ route, navigation }) => {
   };
 
   const updateTopicCompletion = async () => {
+    if (!userId) {
+      Alert.alert('Error', 'User ID is not available.');
+      return;
+    }
+  
     try {
       const userRef = doc(db, 'users', userId);
-      const fieldName = `sequencingCompleted${unit}`;
+      const fieldName = `Sequencing${unit}`;
+      
       await updateDoc(userRef, {
         [fieldName]: true,
       });
+  
+      console.log(`Successfully updated completion for Unit ${unit}`);
     } catch (error) {
       console.error('Error updating user completion:', error);
-      Alert.alert('Error', 'Failed to update completion status.');
+      Alert.alert('Error', 'Failed to update completion status. Please try again.');
     }
   };
+  
 
   // Animate the progress bar
   const animateProgress = () => {

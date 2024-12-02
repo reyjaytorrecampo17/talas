@@ -7,14 +7,14 @@ import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { playClickSound, unloadSound } from '../soundUtils';  // Import sound utility functions
 import LottieView from 'lottie-react-native'; // Import Lottie
-import { getDoc, doc } from 'firebase/firestore';
+import { getFirestore,getDoc, doc } from 'firebase/firestore';
 import { db } from '../services/firebase'; // Adjust the path based on your project
-import { getAuth } from "firebase/auth";
-import { Video } from 'expo-av'; // Import the Video component
+import { getAuth } from 'firebase/auth';
+import { getApp } from 'firebase/app'; // Ensure that Firebase app is initialized
 
 const { width, height } = Dimensions.get('window');
 
-const Home = ({ userId }) => {
+const Home = () => {
   const [wordOfTheDay, setWordOfTheDay] = useState('');
   const [definition, setDefinition] = useState('');
   const [example, setExample] = useState('');
@@ -23,33 +23,33 @@ const Home = ({ userId }) => {
   const [level, setLevel] = useState(0);
   const navigation = useNavigation();
 
-  // Fetch user level and navigate if necessary
   useEffect(() => {
     const fetchUserLevelAndNavigate = async () => {
       try {
-        const auth = getAuth(); // Get Firebase auth instance
-        const user = auth.currentUser; // Get current user
+        const app = getApp();
+        const auth = getAuth(app);
+        const user = auth.currentUser;
 
         if (user) {
-          const userId = user.uid; // Get the userId (UID)
-
-          const userRef = doc(db, 'users', userId);
+          const userId = user.uid;
+          const userRef = doc(getFirestore(app), 'users', userId);
           const userDoc = await getDoc(userRef);
 
           if (userDoc.exists()) {
             const userData = userDoc.data();
-            console.log("Fetched user data:", userData); // Log entire user data
-            const currentLevel = userData?.level ?? 0; // Default to 0 if level is undefined
+            const currentLevel = userData?.level ?? 0;
             setLevel(currentLevel);
-            console.log("User level:", currentLevel); // Log level to check
 
-            // Check if the current level is a multiple of 5 and post-test is not completed
             if (currentLevel % 5 === 0 && currentLevel !== 0) {
               const postTestCompleted = await AsyncStorage.getItem(`postTestCompletedLevel${currentLevel}`);
-              console.log("Post-test completion status:", postTestCompleted); // Log status of post-test completion
-              if (!postTestCompleted) {
+             
+
+              if (postTestCompleted !== null && postTestCompleted !== 'true') {
                 navigation.navigate('PostTestScreen', { level: currentLevel });
+              } else {
+                console.log("Post-test already completed or status unavailable.");
               }
+              
             }
           } else {
             console.error("User document does not exist.");
@@ -67,19 +67,6 @@ const Home = ({ userId }) => {
 
     fetchUserLevelAndNavigate();
   }, [navigation]);
-
-  const fetchPostTestStatus = async () => {
-    try {
-      const postTestCompleted = await AsyncStorage.getItem('postTestCompleted');
-      if (postTestCompleted) {
-        console.log('Post-test is completed');
-      } else {
-        console.log('Post-test is not completed');
-      }
-    } catch (error) {
-      console.error('Error checking post-test status:', error);
-    }
-  };
 
   // Fetch the word of the day
   const fetchWordOfTheDay = async () => {
@@ -242,13 +229,6 @@ const Home = ({ userId }) => {
             <Text style={styles.textTitleBooks}>Talas Books</Text>
           </LinearGradient>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => navigation.navigate('PostTestScreen')}
-        >
-          <Text style={styles.buttonText}>Take Post-Test</Text>
-        </TouchableOpacity>
       </View>
   );
 };
@@ -305,11 +285,11 @@ const styles = StyleSheet.create({
     width: width * 0.85,
   },
   dictionaryTitle: {
-    fontFamily: 'LilitaOne_400Regular',
     fontSize: width * 0.05,
     left: 10,
     color: 'white',
     alignSelf: 'flex-start',
+    fontFamily: 'LilitaOne_400Regular',
     textShadowColor: 'black',
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 2,

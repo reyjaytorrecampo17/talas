@@ -78,6 +78,7 @@ const ProfileHeader = ({ userId }) => {
   const [musicVolume, setMusicVolume] = useState(0.5);
   const [sound, setSound] = useState();
   const [battery, setBattery] = useState(0);
+  const [notifications, setNotifications] = useState([]);
 
 // Define the background task for battery refresh
 TaskManager.defineTask(BACKGROUND_TASK, async () => {
@@ -193,24 +194,41 @@ const refreshBattery = async () => {
       const userData = userSnapshot.data();
       const lastUpdated = userData.lastBatteryUpdated?.toDate() || new Date(0);
       const now = new Date();
-      const timeElapsed = (now - lastUpdated) / 600; // Time in minutes
+      const timeElapsed = (now - lastUpdated) / 60000; // Time in minutes
 
-      if (timeElapsed >= 10) {
-        const refreshedBattery = Math.min(userData.battery + 1, 5); // Increment, cap at 5
+      // Temporary change: reduce time interval for testing
+      if (timeElapsed >= 1) { // Use 1 minute for testing
+        let refreshedBattery = Math.min(userData.battery + 1, 5); // Increment, cap at 5
         await updateDoc(userRef, {
           battery: refreshedBattery,
           lastBatteryUpdated: serverTimestamp(),
         });
         console.log('Battery refreshed to:', refreshedBattery);
         setBattery(refreshedBattery); // Update state
+
+        // Trigger notification if battery is refreshed from 4 to 5
+        if (userData.battery === 4 && refreshedBattery === 5) {
+          console.log('Battery refreshed from 4 to 5, adding notification.');
+          addNotification('Battery fully refreshed!', 'Your battery is now at maximum.');
+        }
       } else {
-        console.log('Battery not updated. Time elapsed is less than 10 minutes.');
+        console.log('Battery not updated. Time elapsed is less than 1 minute.');
       }
     }
   } catch (error) {
     console.error('Failed to refresh battery:', error);
   }
 };
+
+
+const addNotification = (title, message) => {
+  setNotifications((prevNotifications) => {
+    const newNotifications = [...prevNotifications, { title, message, id: Date.now() }];
+    console.log('New Notification Added:', newNotifications); // Log the notifications when they are updated
+    return newNotifications;
+  });
+};
+
 
 
   const toggleBackgroundMusic = () => {
@@ -385,7 +403,7 @@ const refreshBattery = async () => {
                 <TouchableOpacity onPress={toggleNotificationsModal} style={styles.menuItem}>
                   <Text style={styles.menuText}>Notifications</Text>
                 </TouchableOpacity>
-                <Notifications visible={notificationsModalVisible} onClose={toggleNotificationsModal} />
+                <Notifications visible={notificationsModalVisible} onClose={toggleNotificationsModal} notifications={notifications} />
   
                 <TouchableOpacity
                   onPress={() => {

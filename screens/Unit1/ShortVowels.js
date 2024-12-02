@@ -54,15 +54,23 @@ const ShortVowels = ({ route, navigation }) => {
   };
 
   const updateTopicCompletion = async () => {
+    if (!userId) {
+      Alert.alert('Error', 'User ID is not available.');
+      return;
+    }
+  
     try {
       const userRef = doc(db, 'users', userId);
-      const fieldName = `shortVowelsCompleted${unit}`;
+      const fieldName = `ShortVowelsCompleted${unit}`;
+      
       await updateDoc(userRef, {
         [fieldName]: true,
       });
+  
+      console.log(`Successfully updated completion for Unit ${unit}`);
     } catch (error) {
       console.error('Error updating user completion:', error);
-      Alert.alert('Error', 'Failed to update completion status.');
+      Alert.alert('Error', 'Failed to update completion status. Please try again.');
     }
   };
 

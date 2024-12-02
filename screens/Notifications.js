@@ -1,7 +1,13 @@
 import React from "react";
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 
-const Notifications = ({ visible, onClose }) => {
+const NotificationScreen = ({ notifications = [], visible, onClose }) => {
+  // Check if notifications is an array and log an error if it's not
+  if (!Array.isArray(notifications)) {
+    console.error('Notifications should be an array.');
+    return null;  // Return null if notifications is not an array
+  }
+
   return (
     <Modal
       visible={visible}
@@ -12,7 +18,22 @@ const Notifications = ({ visible, onClose }) => {
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
           <Text style={styles.modalTitle}>Notifications</Text>
-          <Text style={styles.modalContent}>Here are your notifications settings.</Text>
+          {notifications.length === 0 ? (
+            <Text style={styles.modalContent}>No new notifications.</Text>
+          ) : (
+            <View style={styles.notificationsList}>
+              {notifications.map((notification) => (
+                <View key={notification.id} style={styles.notificationItemContainer}>
+                  <Text style={styles.notificationTitle}>
+                    {notification.title}
+                  </Text>
+                  <Text style={styles.notificationMessage}>
+                    {notification.message}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Text style={styles.closeButtonText}>Close</Text>
           </TouchableOpacity>
@@ -45,15 +66,38 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 20,
   },
+  notificationsList: {
+    marginBottom: 20,
+    width: '100%',
+  },
+  notificationItemContainer: {
+    marginBottom: 15,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ddd",
+    width: '100%',
+  },
+  notificationTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#007BFF",
+  },
+  notificationMessage: {
+    fontSize: 14,
+    color: "#333",
+  },
   closeButton: {
     backgroundColor: "#007BFF",
     borderRadius: 5,
-    padding: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    marginTop: 10,
   },
   closeButtonText: {
     color: "white",
     fontWeight: "bold",
+    fontSize: 16,
   },
 });
 
-export default Notifications;
+export default NotificationScreen;
