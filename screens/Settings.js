@@ -1,7 +1,15 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet, Dimensions, PanResponder } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  StyleSheet,
+  Dimensions,
+  PanResponder,
+} from 'react-native';
 import CheckBox from 'expo-checkbox';
-import { useSound } from './SoundContext'; // Import the context
+import { useSound } from './SoundContext'; // Import the sound context
 import { playClickSound } from '../soundUtils'; // Import the click sound utility function
 
 const { width, height } = Dimensions.get('window'); // Get device screen dimensions
@@ -25,7 +33,7 @@ const Settings = ({ visible, onClose }) => {
   });
 
   return (
-    <Modal visible={visible} animationType="none" transparent={true} onRequestClose={onClose}>
+    <Modal visible={visible} animationType="none" transparent onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.SettingsmodalContainer}>
           <View style={styles.modalHeader}>
@@ -38,7 +46,7 @@ const Settings = ({ visible, onClose }) => {
             <CheckBox
               value={isMusicEnabled}
               onValueChange={(newValue) => {
-                playClickSound();  // Play click sound when checkbox is clicked
+                playClickSound(); // Play click sound when checkbox is clicked
                 handleMusicEnabledChange(newValue);
               }}
               style={styles.checkbox}
@@ -84,7 +92,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderBottomColor: 'white',
     borderRightColor: 'white',
-    borderLeftColor: 'white'
+    borderLeftColor: 'white',
   },
   modalHeader: {
     justifyContent: 'center',
@@ -96,7 +104,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     borderBottomRightRadius: 100,
     borderBottomLeftRadius: 100,
-    borderWidth: 2
+    borderWidth: 2,
   },
   settingsmodalTitle: {
     color: 'white',
@@ -131,7 +139,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   volumeLabel: {
-    fontSize: width * 0.060,
+    fontSize: width * 0.06,
     color: '#fff',
     marginBottom: height * 0.01,
     fontFamily: 'LilitaOne_400Regular',

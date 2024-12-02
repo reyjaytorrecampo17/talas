@@ -1,29 +1,44 @@
 import React from "react";
-import { Modal, View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import {
+  Modal,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Dimensions,
+} from "react-native";
+
+const { width, height } = Dimensions.get("window");
 
 const NotificationScreen = ({ notifications = [], visible, onClose }) => {
   // Check if notifications is an array and log an error if it's not
   if (!Array.isArray(notifications)) {
-    console.error('Notifications should be an array.');
-    return null;  // Return null if notifications is not an array
+    console.error("Notifications should be an array.");
+    return null; // Return null if notifications is not an array
   }
 
   return (
     <Modal
       visible={visible}
-      animationType="slide"
+      animationType="none"
       transparent={true}
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContainer}>
-          <Text style={styles.modalTitle}>Notifications</Text>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Notifications</Text>
+          </View>
+
           {notifications.length === 0 ? (
             <Text style={styles.modalContent}>No new notifications.</Text>
           ) : (
             <View style={styles.notificationsList}>
               {notifications.map((notification) => (
-                <View key={notification.id} style={styles.notificationItemContainer}>
+                <View
+                  key={notification.id}
+                  style={styles.notificationItemContainer}
+                >
                   <Text style={styles.notificationTitle}>
                     {notification.title}
                   </Text>
@@ -34,6 +49,7 @@ const NotificationScreen = ({ notifications = [], visible, onClose }) => {
               ))}
             </View>
           )}
+
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Text style={styles.closeButtonText}>Close</Text>
           </TouchableOpacity>
@@ -48,55 +64,89 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
   },
   modalContainer: {
-    width: "80%",
-    backgroundColor: "white",
-    borderRadius: 10,
-    padding: 20,
+    backgroundColor: "#9090ff",
+    borderRadius: 20,
+    paddingBottom: height * 0.02,
+    width: width * 0.85,
+    height: height * 0.6,
+    justifyContent: "space-between",
+    borderWidth: 2,
+    borderBottomColor: "white",
+    borderRightColor: "white",
+    borderLeftColor: "white",
     alignItems: "center",
   },
+  modalHeader: {
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#635DC2",
+    width: "100%",
+    height: height * 0.08,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    borderBottomRightRadius: 100,
+    borderBottomLeftRadius: 100,
+    borderWidth: 2,
+  },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 10,
+    color: "white",
+    fontFamily: "LilitaOne_400Regular",
+    fontSize: width * 0.05,
+    textAlign: "center",
+    textShadowColor: "black",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   modalContent: {
-    fontSize: 16,
-    marginBottom: 20,
+    fontSize: width * 0.05,
+    color: "#fff",
+    fontFamily: "LilitaOne_400Regular",
+    textShadowColor: "black",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+    marginTop: height * 0.02,
   },
   notificationsList: {
-    marginBottom: 20,
-    width: '100%',
+    marginBottom: height * 0.02,
+    width: "90%",
   },
   notificationItemContainer: {
-    marginBottom: 15,
-    paddingBottom: 10,
+    marginBottom: height * 0.02,
+    paddingBottom: height * 0.01,
     borderBottomWidth: 1,
     borderBottomColor: "#ddd",
-    width: '100%',
+    width: "100%",
   },
   notificationTitle: {
-    fontSize: 16,
+    fontSize: width * 0.045,
     fontWeight: "bold",
-    color: "#007BFF",
+    color: "#fff",
+    textShadowColor: "black",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   notificationMessage: {
-    fontSize: 14,
-    color: "#333",
+    fontSize: width * 0.04,
+    color: "#ddd",
   },
   closeButton: {
-    backgroundColor: "#007BFF",
+    paddingVertical: height * 0.015,
+    paddingHorizontal: width * 0.1,
+    backgroundColor: "red",
     borderRadius: 5,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    marginTop: 10,
+    elevation: 3,
   },
   closeButtonText: {
     color: "white",
-    fontWeight: "bold",
-    fontSize: 16,
+    fontFamily: "LilitaOne_400Regular",
+    fontSize: width * 0.045,
+    textAlign: "center",
+    textShadowColor: "black",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
 });
 
