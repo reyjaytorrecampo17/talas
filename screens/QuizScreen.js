@@ -10,6 +10,8 @@ import { db ,auth} from '../services/firebase';
 import { collection, doc, getDoc ,updateDoc  , increment ,serverTimestamp,onSnapshot } from "firebase/firestore";
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { playClickSound } from '../soundUtils'; // Adjust the import path if needed
+import * as Speech from 'expo-speech';
+import { AntDesign } from 'react-native-vector-icons';
 import * as TaskManager from 'expo-task-manager';
 import * as BackgroundFetch from 'expo-background-fetch';
 
@@ -45,8 +47,42 @@ const QuizScreen = () => {
   const [timerActive, setTimerActive] = useState(false); // Flag to control timer
   const [points,setPoints] = useState();
   const [battery, setBattery] = useState(0);
+  const [isSpeaking, setIsSpeaking] = useState(false); // State to track if speech is playing
   
+  const handleTTSToggle = () => {
+    if (isSpeaking) {
+      Speech.stop(); // Stop the speech if it's currently playing
+      setIsSpeaking(false);
+    } else {
+      Speech.speak(currentStory.text, {
+        pitch: 1.5, // Higher pitch for a more kid-friendly voice
+        rate: 0.9,  // Slightly slower rate for better understanding
+        language: 'en-US',
+      });
+      setIsSpeaking(true);
+    }
+  };
 
+  // Stop TTS when the screen is exited or when the component unmounts
+  useEffect(() => {
+    // Stop speech when the component unmounts or when navigating away
+    return () => {
+      if (isSpeaking) {
+        Speech.stop();
+      }
+    };
+  }, [isSpeaking]);
+
+  const handleStartQuestions = async () => {
+    if (isSpeaking) {
+      Speech.stop(); // Stop TTS when starting the questions
+      setIsSpeaking(false); // Update state to reflect speech is stopped
+    }
+    await playClickSound(); // Play the click sound
+    setShowQuestions(true);
+    setTimeLeft(30); // Reset timer for each question
+    setTimerActive(true); // Start the timer
+  };
 
   // Function to decrease battery count and update Firestore
   const decreaseBattery = async () => {
@@ -438,7 +474,7 @@ const QuizScreen = () => {
       }
     }
   };
-  const [lives, setLives] = useState(2); // Start with 3 lives
+  const [lives, setLives] = useState(3); // Start with 3 lives
 
   const tryAgain = () =>{
     if (battery === 0) {
@@ -584,7 +620,7 @@ const QuizScreen = () => {
                   </View>
                 
                   <View style={styles.heartsContainer}>
-                    {[...Array(2)].map((_, index) => (
+                    {[...Array(3)].map((_, index) => (
                       <Icon
                         key={index}
                         name="heart"
@@ -678,16 +714,20 @@ const QuizScreen = () => {
             <ScrollView style={styles.scrollContainer}>
               {!showQuestions ? (
                 <View style={{justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff', padding: 15, borderRadius: 10}}>
+                  <View style={styles.ttsButtons}>
+                  <TouchableOpacity onPress={handleTTSToggle} style={styles.ttsButton}>
+                    <AntDesign
+                      name={isSpeaking ? "pausecircle" : "sound"} // Toggle icon based on speaking state
+                      size={20}
+                      color="#333"
+                    />
+                   </TouchableOpacity>
+                  </View>
                   <Text style={styles.storyTitle}>{currentStory.title}</Text>
                   <Text style={styles.storyText}>{currentStory.text}</Text>
                   <Text style={styles.difficulty}>Difficulty: {currentStory.difficulty}</Text>
                   <TouchableOpacity 
-                    onPress={async () => {
-                      await playClickSound(); // Play the click sound
-                      setShowQuestions(true);
-                      setTimeLeft(30); // Reset timer for each question
-                      setTimerActive(true); // Start the timer
-                    }}
+                     onPress={handleStartQuestions} // Handle TTS stop and start questions
                     style={styles.StartQuestionButton}
                   >
                     <Text style={styles.StartQuestionButtonText}>Start Questions</Text>
@@ -1093,6 +1133,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#FF6347',
     marginTop: 10,
+  },
+  ttsButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
   },
 });
 export default QuizScreen;
