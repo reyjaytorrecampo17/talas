@@ -164,10 +164,10 @@ const LessonScreen = ({ navigation , userId}) => {
           </TouchableWithoutFeedback>
         </View>
       </LinearGradient>
-      {renderUnitButton(1, false, () => navigation.navigate('UnitScreen', { unit: 1 , userId}))}
-      {renderUnitButton(2, isUnit2Locked, () => navigation.navigate('UnitScreen', { unit: 2 , userId}))}
-      {renderUnitButton(3, isUnit3Locked, () => navigation.navigate('UnitScreen', { unit: 3 , userId}))}
-      {renderUnitButton(4, isUnit4Locked, () => navigation.navigate('UnitScreen', { unit: 4 , userId}))}
+      {renderUnitButton(1, false, () => navigation.navigate('StoryScreen', { unit: 1 , userId}))}
+      {renderUnitButton(2, isUnit2Locked, () => navigation.navigate('StoryScreen', { unit: 2 , userId}))}
+      {renderUnitButton(3, isUnit3Locked, () => navigation.navigate('StoryScreen', { unit: 3 , userId}))}
+      {renderUnitButton(4, isUnit4Locked, () => navigation.navigate('StoryScreen', { unit: 4 , userId}))}
     </View>
   );
 };

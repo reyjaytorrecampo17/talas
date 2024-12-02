@@ -4,29 +4,55 @@ import { LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
 
 let level = 0;
 
+
+
 const generateInitialGrid = (crosswordData, level) => {
-    const initialGrid = Array(7).fill(0).map(() => Array(8).fill('X'));
-    crosswordData[level].forEach(({ answer, startx, starty, orientation }) => {
+    const puzzle = crosswordData[level];
+
+    // Calculate maximum grid size by scanning clues
+    let maxX = 0;
+    let maxY = 0;
+    puzzle.forEach(({ answer, startx, starty, orientation }) => {
+        const length = answer.length;
+        maxX = Math.max(maxX, startx + (orientation === 'across' ? length - 1 : 0));
+        maxY = Math.max(maxY, starty + (orientation === 'down' ? length - 1 : 0));
+    });
+
+    // Create grid based on detected max sizes (ensuring dimensions align)
+    const gridWidth = maxX;
+    const gridHeight = maxY;
+
+    // Initialize all rows and columns
+    const initialGrid = Array.from({ length: gridHeight }, () => Array(gridWidth).fill('X'));
+
+    puzzle.forEach(({ answer, startx, starty, orientation }) => {
         let x = startx - 1;
         let y = starty - 1;
 
         for (let i = 0; i < answer.length; i++) {
-            if (orientation === 'across') {
-                initialGrid[y][x + i] = ''; // Mark empty for user input
-            } else if (orientation === 'down') {
-                initialGrid[y + i][x] = ''; // Mark empty for user input
-            }
+            if (orientation === 'across') initialGrid[y][x + i] = '';
+            if (orientation === 'down') initialGrid[y + i][x] = '';
         }
     });
+
     return initialGrid;
 };
 
+
+
+
 const generateAnswerGrid = (crosswordData, level) => {
-    const answerGrid = Array(7).fill(0).map(() => Array(8).fill('X'));
-    crosswordData[level].forEach(({ answer, startx, starty, orientation }) => {
+    const puzzle = crosswordData[level];
+    
+    const maxX = Math.max(...puzzle.map(({ startx, answer, orientation }) => startx + (orientation === 'across' ? answer.length - 1 : 0))) - 1;
+    const maxY = Math.max(...puzzle.map(({ starty, answer, orientation }) => starty + (orientation === 'down' ? answer.length - 1 : 0))) - 1;
+
+    const answerGrid = Array.from({ length: maxY + 1 }, () => Array(maxX + 1).fill('X'));
+
+    puzzle.forEach(({ answer, startx, starty, orientation }) => {
         let x = startx - 1;
         let y = starty - 1;
-
+        
         for (let i = 0; i < answer.length; i++) {
             if (orientation === 'across') {
                 answerGrid[y][x + i] = answer[i].toUpperCase();
@@ -35,8 +61,10 @@ const generateAnswerGrid = (crosswordData, level) => {
             }
         }
     });
+    
     return answerGrid;
 };
+
 
 const CrosswordGrid = ({ crosswordData }) => {
     const [grid, setGrid] = useState(generateInitialGrid(crosswordData, 0));
@@ -45,8 +73,17 @@ const CrosswordGrid = ({ crosswordData }) => {
     const inputRefs = useRef([]);
 
     useEffect(() => {
-        setGrid(generateInitialGrid(crosswordData, level));
+        const newGrid = generateInitialGrid(crosswordData, level);
+        setGrid(newGrid);
+        
+        // Reset inputRefs fully with dimensions of the new grid
+        inputRefs.current = Array.from({ length: newGrid.length }, () =>
+            Array.from({ length: newGrid[0].length }, () => null)
+        );
     }, [crosswordData, level]);
+    
+    
+    
 
     const handleInputChange = (row, col, text) => {
         const newGrid = [...grid];
@@ -93,9 +130,13 @@ const CrosswordGrid = ({ crosswordData }) => {
 
     const handleGenerate = () => {
         const nextLevel = (level + 1) % crosswordData.length;
+        console.log('Next Level:', nextLevel); // Check if nextLevel is calculated correctly
         setLevel(nextLevel);
-        setGrid(generateInitialGrid(crosswordData, nextLevel));
+        setGrid(generateInitialGrid(crosswordData, nextLevel)); // Ensure grid is set correctly
     };
+    
+    
+    
 
     const handleVerify = () => {
         const answerGrid = generateAnswerGrid(crosswordData, level);
@@ -121,48 +162,62 @@ const CrosswordGrid = ({ crosswordData }) => {
         const answerGrid = generateAnswerGrid(crosswordData, level);
         setGrid(answerGrid);
     };
+    
+    
 
    
-    const renderGrid = () => (
-        <View>
-            {grid.map((row, rowIndex) => (
-                <View key={rowIndex} style={styles.row}>
-                    {row.map((cell, colIndex) => (
-                        <View key={colIndex} style={styles.cellContainer}>
-                            {crosswordData[level].map(({ startx, starty, position }) => {
-                                if (rowIndex + 1 === starty && colIndex + 1 === startx) {
-                                    return (
-                                        <Text key={`digit-${position}`} style={styles.smallDigit}>
-                                            {position}
-                                        </Text>
-                                    );
-                                }
-                                return null;
-                            })}
-                            <TextInput
-                                key={`${rowIndex}-${colIndex}-${cell}`}
-                                style={[
-                                    styles.cell,
-                                    cell === 'X' ? styles.staticCell : styles.editableCell, // Only apply background to editable cells
-                                ]}
-                                value={cell === 'X' ? '' : cell}
-                                editable={cell !== 'X'}
-                                onFocus={() => handleCellFocus(rowIndex, colIndex)}
-                                onChangeText={(text) => handleInputChange(rowIndex, colIndex, text)}
-                                maxLength={1}
-                                ref={(el) => {
-                                    if (!inputRefs.current[rowIndex]) {
-                                        inputRefs.current[rowIndex] = [];
+    const renderGrid = () => {
+        // Precompute positions of clues for faster access
+        const cluePositions = crosswordData[level].reduce((acc, { startx, starty, position, orientation }) => {
+            const x = startx - 1;
+            const y = starty - 1;
+            acc.push({ x, y, position, orientation });
+            return acc;
+        }, []);
+    
+        return (
+            <View>
+                {grid.map((row, rowIndex) => (
+                    <View key={rowIndex} style={styles.row}>
+                        {row.map((cell, colIndex) => (
+                            <View key={colIndex} style={styles.cellContainer}>
+                                {cluePositions.map(({ x, y, position }) => {
+                                    if (rowIndex === y && colIndex === x) {
+                                        return (
+                                            <Text key={`digit-${position}`} style={styles.smallDigit}>
+                                                {position}
+                                            </Text>
+                                        );
                                     }
-                                    inputRefs.current[rowIndex][colIndex] = el;
-                                }}
-                            />
-                        </View>
-                    ))}
-                </View>
-            ))}
-        </View>
-    );
+                                    return null;
+                                })}
+                                <TextInput
+                                    key={`${rowIndex}-${colIndex}-${cell}`}
+                                    style={[
+                                        styles.cell,
+                                        cell === 'X' ? styles.staticCell : styles.editableCell,
+                                    ]}
+                                    value={cell === 'X' ? '' : cell}
+                                    editable={cell !== 'X'}
+                                    onFocus={() => handleCellFocus(rowIndex, colIndex)}
+                                    onChangeText={(text) => handleInputChange(rowIndex, colIndex, text)}
+                                    maxLength={1}
+                                    ref={(el) => {
+                                        // Ensure inputRefs is initialized to avoid undefined errors
+                                        if (!inputRefs.current[rowIndex]) {
+                                            inputRefs.current[rowIndex] = [];
+                                        }
+                                        inputRefs.current[rowIndex][colIndex] = el;
+                                    }}                                                                                                                                
+                                />
+                            </View>
+                        ))}
+                    </View>
+                ))}
+            </View>
+        );
+    };
+    
 
     const renderQuestions = () => {
         const questions = { across: [], down: [] };
@@ -202,7 +257,9 @@ const CrosswordGrid = ({ crosswordData }) => {
         >
             <View style={styles.container}>
                 {renderQuestions()}
-                {renderGrid()}
+                <View style={styles.gridContainer}>
+                    {renderGrid()}
+                </View>
                 <View style={styles.buttonContainer}>
                     <TouchableOpacity style={styles.button} onPress={handleGenerate}>
                         <Text style={styles.buttonText}>Generate</Text>
@@ -310,6 +367,13 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         opacity: 0.9,
+    },
+    gridContainer: {
+        width: '100%',
+        maxWidth: Dimensions.get('window').width * 0.9,
+        aspectRatio: 1, // Ensures a square layout
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });
 

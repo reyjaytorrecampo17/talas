@@ -25,6 +25,7 @@ import Settings from './screens/Settings';
 import Notifications from './screens/Notifications';
 import PrivacyPolicy from './screens/PrivacyPolicy';
 import Hangman from './screens/Hangman';
+import StoryScreen from './screens/StoryScreen';
 import { LevelProvider } from './context/LevelContext';
 import { SoundProvider } from './screens/SoundContext';
 
@@ -123,6 +124,7 @@ export default function App() {
               {(props) => <PostTestScreen {...props} level={level} userId={userId} />}
               
             </Stack.Screen>
+            <Stack.Screen name = "StoryScreen" component={StoryScreen} options={{ headerShown: false }}/>
             <Stack.Screen name="ShortVowels" component={ShortVowels}options={{ headerShown: false }} />
             <Stack.Screen name="CrossWord" component={CrossWord} options={{ headerShown: false }}/>
             <Stack.Screen name="Sequencing" component={Sequencing}options={{ headerShown: false }} />

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, Dimensions,Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated, Dimensions, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
@@ -9,27 +9,23 @@ import { useFonts, LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const auth = getAuth();
-const user = auth.currentUser;
 const { width, height } = Dimensions.get('window');
 
 const UnitScreen = ({ navigation, route }) => {
   const { unit } = route.params;
- 
-  
+
+  // Get the current user
+  const user = auth.currentUser;
+
   if (!user) {
     Alert.alert('Error', 'User is not authenticated. Please login again.');
     navigation.navigate('Login'); // Navigate to login screen if not authenticated
-    return;
+    return null; // Return null here to avoid rendering the component
   }
-  
+
   const userId = user.uid; // Use user ID here
-    if (!userId) {
-      Alert.alert('Error', 'User ID is missing. Please login again.');
-      return;
-    }
 
   const [scale] = useState(new Animated.Value(1));
-
   const [fontsLoaded] = useFonts({ LilitaOne_400Regular });
 
   if (!fontsLoaded) {
@@ -85,8 +81,7 @@ const UnitScreen = ({ navigation, route }) => {
         {lessons.map((lesson, index) => (
           <Animated.View
             key={lesson.id}
-            style={[styles.lessonContainer, { transform: [{ scale }] }]}
-          >
+            style={[styles.lessonContainer, { transform: [{ scale }] }]}>
             <TouchableOpacity
               onPressIn={() => {
                 handlePressIn();
@@ -94,8 +89,7 @@ const UnitScreen = ({ navigation, route }) => {
               }}
               onPressOut={() => handlePressOut()}
               onPress={() => navigation.navigate(lesson.id, { unit, userId })}
-              style={[styles.button, styles[`gradient${index % 4}`]]}
-            >
+              style={[styles.button, styles[`gradient${index % 4}`]]}>
               <Ionicons name={lesson.icon} size={35} color="#FFF" style={styles.icon} />
               <Text style={styles.lessonText}>{lesson.title}</Text>
             </TouchableOpacity>
@@ -105,6 +99,7 @@ const UnitScreen = ({ navigation, route }) => {
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
