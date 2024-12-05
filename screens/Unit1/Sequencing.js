@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Animated, Modal, Easing, Alert } from 'react-native';
 import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
+import { Audio } from 'expo-av';
 
 const Sequencing = ({ route, navigation }) => {
   const { unit, userId } = route.params;  // Assuming userId is passed as part of route params
@@ -16,6 +17,24 @@ const Sequencing = ({ route, navigation }) => {
   const [backgroundAnimation] = useState(new Animated.Value(0)); // For background animation
 
   const totalQuestions = 5; // Assuming we have 5 questions to answer
+
+  const [sound, setSound] = useState();
+
+  // Function to play sound
+  async function playSound() {
+    const { sound } = await Audio.Sound.createAsync(require('../../assets/sounds/clickmenu.wav'));
+    setSound(sound);
+    await sound.playAsync();
+  }
+
+  useEffect(() => {
+    return sound
+      ? () => {
+          sound.unloadAsync(); // Clean up sound
+        }
+      : undefined;
+  }, [sound]);
+
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -44,6 +63,7 @@ const Sequencing = ({ route, navigation }) => {
   }, [unit]);
 
   const handleAnswerSelection = async (selectedOptionIndex, correctOptionIndex) => {
+    await playSound();
     // Button animation for feedback
     Animated.sequence([
       Animated.timing(buttonAnimation, { toValue: 1.2, duration: 200, useNativeDriver: true }),

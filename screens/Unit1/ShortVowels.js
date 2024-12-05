@@ -2,12 +2,31 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
+import { Audio } from 'expo-av';
 
 const ShortVowels = ({ route, navigation }) => {
   const { unit, userId } = route.params;
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+
+  const [sound, setSound] = useState();
+
+  // Function to play sound
+  async function playSound() {
+    const { sound } = await Audio.Sound.createAsync(require('../../assets/sounds/clickmenu.wav'));
+    setSound(sound);
+    await sound.playAsync();
+  }
+
+  useEffect(() => {
+    return sound
+      ? () => {
+          sound.unloadAsync(); // Clean up sound
+        }
+      : undefined;
+  }, [sound]);
+
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -31,6 +50,7 @@ const ShortVowels = ({ route, navigation }) => {
   }, [unit]);
 
   const handleAnswerSelection = async (selectedOptionIndex, correctOptionIndex) => {
+    await playSound();
     if (selectedOptionIndex === correctOptionIndex) {
       Alert.alert('Correct!', 'You selected the correct answer.', [
         {

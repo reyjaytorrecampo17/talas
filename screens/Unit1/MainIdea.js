@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert, Animated, ImageBackground} from 'react-native';
 import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
+import { Audio } from 'expo-av';
 
 const MainIdea = ({ route, navigation }) => {
   const { unit, userId } = route.params;
@@ -11,6 +12,23 @@ const MainIdea = ({ route, navigation }) => {
   const [fadeAnim] = useState(new Animated.Value(0)); // Animation for question fading
   const [scaleAnim] = useState(new Animated.Value(1)); // Button animation for scaling
   const [alertAnim] = useState(new Animated.Value(0)); // Animation for alert scaling
+
+  const [sound, setSound] = useState();
+
+  // Function to play sound
+  async function playSound() {
+    const { sound } = await Audio.Sound.createAsync(require('../../assets/sounds/clickmenu.wav'));
+    setSound(sound);
+    await sound.playAsync();
+  }
+
+  useEffect(() => {
+    return sound
+      ? () => {
+          sound.unloadAsync(); // Clean up sound
+        }
+      : undefined;
+  }, [sound]);
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -34,11 +52,14 @@ const MainIdea = ({ route, navigation }) => {
   }, [unit]);
 
   const handleAnswerSelection = async (selectedOptionIndex, correctOptionIndex) => {
+    // Play sound whenever an answer is selected
+    await playSound();
+
     if (selectedOptionIndex === correctOptionIndex) {
       // Correct Answer Animation
       Animated.sequence([
         Animated.spring(scaleAnim, {
-          toValue: 1.2,
+          toValue: 1,
           friction: 2,
           useNativeDriver: true,
         }),
@@ -55,7 +76,7 @@ const MainIdea = ({ route, navigation }) => {
         duration: 300,
         useNativeDriver: true,
       }).start();
-
+      
       Alert.alert('Good Job!', 'You selected the correct answer.', [
         {
           text: 'Next',
@@ -66,7 +87,7 @@ const MainIdea = ({ route, navigation }) => {
       // Incorrect Answer Animation
       Animated.sequence([
         Animated.spring(scaleAnim, {
-          toValue: 0.8,
+          toValue: 1,
           friction: 2,
           useNativeDriver: true,
         }),
@@ -98,6 +119,7 @@ const MainIdea = ({ route, navigation }) => {
       navigation.goBack();  // Navigate back after quiz completion
     }
   };
+
   const updateTopicCompletion = async () => {
     if (!userId) {
       Alert.alert('Error', 'User ID is not available.');
@@ -177,7 +199,7 @@ const MainIdea = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#E6F5E6' },
+  container: { flex: 1, padding: 20, backgroundColor: '#E6F5E6', zIndex: 1},
   title: { fontSize: 28, fontWeight: 'bold', marginBottom: 20, color: '#228B22', textAlign: 'center' },
   
   // Progress Container and Text

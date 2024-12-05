@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
+import { Audio } from 'expo-av';
 
 const Vocabulary = ({ route, navigation }) => {
   const { unit, userId } = route.params;  // Assuming userId is passed as part of route params
@@ -9,6 +10,24 @@ const Vocabulary = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
+  const [sound, setSound] = useState();
+
+  // Function to play sound
+  async function playSound() {
+    const { sound } = await Audio.Sound.createAsync(require('../../assets/sounds/clickmenu.wav'));
+    setSound(sound);
+    await sound.playAsync();
+  }
+
+  useEffect(() => {
+    return sound
+      ? () => {
+          sound.unloadAsync(); // Clean up sound
+        }
+      : undefined;
+  }, [sound]);
+
+  
   // Fetch questions from Firestore
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -38,18 +57,20 @@ const Vocabulary = ({ route, navigation }) => {
   }, [unit]);
 
   // Function to handle answer selection
-  const handleAnswerSelection = (selectedOptionIndex, correctOptionIndex) => {
-    if (selectedOptionIndex === correctOptionIndex) {
-      Alert.alert('Correct!', 'You selected the correct answer.', [
-        {
-          text: 'Next',
-          onPress: handleNext,
-        },
-      ]);
-    } else {
-      Alert.alert('Incorrect!', 'Please try again.');
-    }
-  };
+const handleAnswerSelection = async (selectedOptionIndex, correctOptionIndex) => {
+  await playSound();  // Wait for the sound to play before proceeding
+
+  if (selectedOptionIndex === correctOptionIndex) {
+    Alert.alert('Correct!', 'You selected the correct answer.', [
+      {
+        text: 'Next',
+        onPress: handleNext,
+      },
+    ]);
+  } else {
+    Alert.alert('Incorrect!', 'Please try again.');
+  }
+};
 
   // Move to the next question or show "Quiz Complete"
   const handleNext = async () => {

@@ -71,7 +71,7 @@ const UnitScreen = ({ navigation, route }) => {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#050313', '#9747FF', '#25276B']} style={styles.header}>
+      <LinearGradient colors={['#4B0082', '#B38DFF', '#9747FF']} style={styles.header}>
         <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
           <Ionicons name="arrow-back" size={40} color="#FFF" />
         </TouchableOpacity>

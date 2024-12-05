@@ -9,6 +9,7 @@ import {
   Dimensions,
   SafeAreaView,
   ScrollView,
+  ImageBackground
 } from 'react-native';
 import { useFonts, LilitaOne_400Regular } from '@expo-google-fonts/lilita-one';
 import { doc, getDoc } from 'firebase/firestore';
@@ -16,6 +17,7 @@ import { db } from '../services/firebase';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Speech from 'expo-speech';
 import { AntDesign, Ionicons } from '@expo/vector-icons';
+import { Audio } from 'expo-av';
 
 const { width, height } = Dimensions.get('window');
 
@@ -26,6 +28,23 @@ const StoryScreen = ({ route, navigation }) => {
   const [buttonScale] = useState(new Animated.Value(1));
   const [isSpeaking, setIsSpeaking] = useState(false); // State to track if speech is playing
 
+   // Load sound effect
+   const [sound, setSound] = useState();
+
+   async function playSound() {
+     const { sound } = await Audio.Sound.createAsync(require('../assets/sounds/clickmenu.wav'));
+     setSound(sound);
+     await sound.playAsync();
+   }
+ 
+   useEffect(() => {
+     return sound
+       ? () => {
+           sound.unloadAsync(); // Clean up sound
+         }
+       : undefined;
+   }, [sound]);
+ 
   const handleTTSToggle = () => {
     if (isSpeaking) {
       Speech.stop();
@@ -71,24 +90,27 @@ const StoryScreen = ({ route, navigation }) => {
       useNativeDriver: true,
     }).start();
   };
-
-  const handlePressOut = () => {
+  
+  const handlePressOut = async () => {
     if (isSpeaking) Speech.stop();
     setIsSpeaking(false);
-
+  
     Animated.spring(buttonScale, {
       toValue: 1,
       friction: 3,
       tension: 40,
       useNativeDriver: true,
-    }).start(() => {
+    }).start(async () => {
+      await playSound(); // Ensure that the sound is played before navigating
       navigation.navigate('UnitScreen', { unit, userId });
     });
   };
+  
 
   const handleBackPress = () => {
     Speech.stop();
     navigation.goBack();
+    playSound();
   };
 
   if (loading) {
@@ -104,6 +126,11 @@ const StoryScreen = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
+      <ImageBackground 
+        source={require('../../talas/images/bg.png')}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      ></ImageBackground>
       <LinearGradient colors={['#25276B', '#25276B']} style={styles.header}>
         <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
           <Ionicons name="arrow-back" size={40} color="#FFF" />
@@ -132,12 +159,22 @@ const StoryScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    position: 'absolute', // Position absolutely to fill the screen
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+  },
   container: {
     flex: 1,
     backgroundColor: '#25276B',
   },
   header: {
-    height: height * 0.2,
+    height: height * 0.13,
     justifyContent: 'center',
     alignItems: 'center',
     borderBottomLeftRadius: 20,
